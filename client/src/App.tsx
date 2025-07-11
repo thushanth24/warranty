@@ -9,10 +9,19 @@ import DashboardPage from "@/pages/dashboard";
 import SubscriptionsPage from "@/pages/subscriptions";
 import WarrantiesPage from "@/pages/warranties";
 import RemindersPage from "@/pages/reminders";
+import ProfilePage from "@/pages/profile";
+import ProfileSetupPage from "@/pages/profile-setup";
 import MainLayout from "@/components/layout/main-layout";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
+  const { user } = useAuth();
+  
+  // If user hasn't completed profile, show profile setup
+  if (user && !user.profileCompleted) {
+    return <ProfileSetupPage />;
+  }
+  
   return (
     <MainLayout>
       <Switch>
@@ -20,6 +29,7 @@ function AuthenticatedApp() {
         <Route path="/subscriptions" component={SubscriptionsPage} />
         <Route path="/warranties" component={WarrantiesPage} />
         <Route path="/reminders" component={RemindersPage} />
+        <Route path="/profile" component={ProfilePage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

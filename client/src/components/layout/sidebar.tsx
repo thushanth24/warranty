@@ -8,6 +8,7 @@ import {
   CreditCard, 
   Shield, 
   Bell, 
+  User,
   LogOut, 
   Menu,
   X
@@ -33,6 +34,11 @@ const navigationItems = [
     name: "Reminders",
     href: "/reminders",
     icon: Bell,
+  },
+  {
+    name: "Profile",
+    href: "/profile",
+    icon: User,
   },
 ];
 
@@ -106,8 +112,16 @@ export default function Sidebar() {
           <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <div className="mb-3">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {user?.phoneNumber}
+                {user?.firstName && user?.lastName 
+                  ? `${user.firstName} ${user.lastName}`
+                  : user?.phoneNumber
+                }
               </p>
+              {user?.email && (
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {user.email}
+                </p>
+              )}
             </div>
             <Button
               variant="outline"

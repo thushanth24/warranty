@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertSubscriptionSchema, insertWarrantySchema, insertReminderSchema } from "@shared/schema";
+import { insertUserSchema, insertSubscriptionSchema, insertWarrantySchema, insertReminderSchema, profileSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -257,6 +257,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Reminder deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete reminder" });
+    }
+  });
+
+  // User profile routes
+  app.get("/api/users/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.put("/api/users/:userId/profile", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const validatedData = profileSchema.parse(req.body);
+      const updates = {
+        ...validatedData,
+        dateOfBirth: new Date(validatedData.dateOfBirth),
+        profileCompleted: true,
+      };
+      
+      const user = await storage.updateUser(userId, updates);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid profile data", errors: error.errors });
+      }
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
     }
   });
 

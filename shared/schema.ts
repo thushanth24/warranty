@@ -7,6 +7,11 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   phoneNumber: text("phone_number").notNull().unique(),
   isVerified: boolean("is_verified").default(false),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  dateOfBirth: timestamp("date_of_birth"),
+  profileCompleted: boolean("profile_completed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -49,6 +54,18 @@ export const reminders = pgTable("reminders", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+});
+
+export const profileSchema = createInsertSchema(users).pick({
+  firstName: true,
+  lastName: true,
+  email: true,
+  dateOfBirth: true,
+}).extend({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
 });
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
