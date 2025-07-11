@@ -9,13 +9,12 @@ import DashboardPage from "@/pages/dashboard";
 import SubscriptionsPage from "@/pages/subscriptions";
 import WarrantiesPage from "@/pages/warranties";
 import RemindersPage from "@/pages/reminders";
-import Header from "@/components/layout/header";
+import MainLayout from "@/components/layout/main-layout";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <MainLayout>
       <Switch>
         <Route path="/" component={DashboardPage} />
         <Route path="/subscriptions" component={SubscriptionsPage} />
@@ -23,7 +22,7 @@ function AuthenticatedApp() {
         <Route path="/reminders" component={RemindersPage} />
         <Route component={NotFound} />
       </Switch>
-    </div>
+    </MainLayout>
   );
 }
 

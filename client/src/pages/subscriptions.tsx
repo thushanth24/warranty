@@ -38,7 +38,7 @@ export default function SubscriptionsPage() {
 
   const filteredSubscriptions = subscriptions?.filter((sub: Subscription) => {
     const matchesSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || sub.category === categoryFilter;
+    const matchesCategory = !categoryFilter || categoryFilter === "all" || sub.category === categoryFilter;
     // Add status filtering logic here if needed
     return matchesSearch && matchesCategory;
   }).sort((a: Subscription, b: Subscription) => {
@@ -55,7 +55,7 @@ export default function SubscriptionsPage() {
   });
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="p-6">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -91,7 +91,7 @@ export default function SubscriptionsPage() {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="entertainment">Entertainment</SelectItem>
                     <SelectItem value="productivity">Productivity</SelectItem>
                     <SelectItem value="cloud-storage">Cloud Storage</SelectItem>
@@ -109,7 +109,7 @@ export default function SubscriptionsPage() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="due-soon">Due Soon</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
