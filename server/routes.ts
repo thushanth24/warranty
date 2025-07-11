@@ -102,6 +102,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/subscriptions/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
       const validatedData = insertSubscriptionSchema.parse(req.body);
       const subscription = await storage.createSubscription({ ...validatedData, userId });
       res.status(201).json(subscription);
@@ -109,6 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid subscription data", errors: error.errors });
       }
+      console.error("Error creating subscription:", error);
       res.status(500).json({ message: "Failed to create subscription" });
     }
   });
@@ -160,6 +165,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/warranties/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
       const validatedData = insertWarrantySchema.parse(req.body);
       const warranty = await storage.createWarranty({ ...validatedData, userId });
       res.status(201).json(warranty);
@@ -167,6 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid warranty data", errors: error.errors });
       }
+      console.error("Error creating warranty:", error);
       res.status(500).json({ message: "Failed to create warranty" });
     }
   });
@@ -218,6 +228,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/reminders/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
       const validatedData = insertReminderSchema.parse(req.body);
       const reminder = await storage.createReminder({ ...validatedData, userId });
       res.status(201).json(reminder);
@@ -225,6 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid reminder data", errors: error.errors });
       }
+      console.error("Error creating reminder:", error);
       res.status(500).json({ message: "Failed to create reminder" });
     }
   });

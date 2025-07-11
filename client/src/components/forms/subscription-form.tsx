@@ -46,11 +46,14 @@ export default function SubscriptionForm({ subscription, onSuccess, onCancel }: 
 
   const createMutation = useMutation({
     mutationFn: async (data: SubscriptionFormData) => {
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
       const payload = {
         ...data,
         nextRenewalDate: new Date(data.nextRenewalDate),
       };
-      return apiRequest("POST", `/api/subscriptions/${user?.id}`, payload);
+      return apiRequest("POST", `/api/subscriptions/${user.id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions", user?.id] });
@@ -70,11 +73,14 @@ export default function SubscriptionForm({ subscription, onSuccess, onCancel }: 
 
   const updateMutation = useMutation({
     mutationFn: async (data: SubscriptionFormData) => {
+      if (!user?.id || !subscription?.id) {
+        throw new Error("User not authenticated or subscription not found");
+      }
       const payload = {
         ...data,
         nextRenewalDate: new Date(data.nextRenewalDate),
       };
-      return apiRequest("PUT", `/api/subscriptions/${user?.id}/${subscription?.id}`, payload);
+      return apiRequest("PUT", `/api/subscriptions/${user.id}/${subscription.id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions", user?.id] });
@@ -93,6 +99,15 @@ export default function SubscriptionForm({ subscription, onSuccess, onCancel }: 
   });
 
   const onSubmit = (data: SubscriptionFormData) => {
+    if (!user?.id) {
+      toast({ 
+        title: "Error", 
+        description: "Please sign in to continue",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     if (subscription) {
       updateMutation.mutate(data);
     } else {

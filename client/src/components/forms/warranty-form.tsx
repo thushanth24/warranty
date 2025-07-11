@@ -52,7 +52,10 @@ export default function WarrantyForm({ warranty, onSuccess, onCancel }: Warranty
         purchaseDate,
         expirationDate,
       };
-      return apiRequest("POST", `/api/warranties/${user?.id}`, payload);
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+      return apiRequest("POST", `/api/warranties/${user.id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/warranties", user?.id] });
@@ -81,7 +84,10 @@ export default function WarrantyForm({ warranty, onSuccess, onCancel }: Warranty
         purchaseDate,
         expirationDate,
       };
-      return apiRequest("PUT", `/api/warranties/${user?.id}/${warranty?.id}`, payload);
+      if (!user?.id || !warranty?.id) {
+        throw new Error("User not authenticated or warranty not found");
+      }
+      return apiRequest("PUT", `/api/warranties/${user.id}/${warranty.id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/warranties", user?.id] });
@@ -100,6 +106,15 @@ export default function WarrantyForm({ warranty, onSuccess, onCancel }: Warranty
   });
 
   const onSubmit = (data: WarrantyFormData) => {
+    if (!user?.id) {
+      toast({ 
+        title: "Error", 
+        description: "Please sign in to continue",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     if (warranty) {
       updateMutation.mutate(data);
     } else {
