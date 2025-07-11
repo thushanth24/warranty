@@ -16,7 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Reminder, Subscription, Warranty, UserNotificationSettings, Notification } from "@shared/schema";
 
 export default function RemindersPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [reminderIntervals, setReminderIntervals] = useState("7,3,1");
@@ -146,8 +146,18 @@ export default function RemindersPage() {
     }
   };
 
-  if (!user) {
-    return <div>Please log in to view reminders.</div>;
+  if (!user || !isAuthenticated) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+            <p className="text-gray-600 mb-4">Please log in to view your reminders and notification settings.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

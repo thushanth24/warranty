@@ -50,7 +50,7 @@ interface WarrantyClaimFormData {
 }
 
 export default function EnhancedWarrantiesPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -256,8 +256,18 @@ export default function EnhancedWarrantiesPage() {
     { value: "isTransferred", label: "Is Transferred", type: "boolean" as const },
   ];
 
-  if (!user) {
-    return <div>Please log in to view warranties.</div>;
+  if (!user || !isAuthenticated) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+            <p className="text-gray-600 mb-4">Please log in to view your warranties.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
