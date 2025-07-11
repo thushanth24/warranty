@@ -1,4 +1,4 @@
-import { users, subscriptions, warranties, reminders, type User, type InsertUser, type Subscription, type InsertSubscription, type Warranty, type InsertWarranty, type Reminder, type InsertReminder } from "@shared/schema";
+import { users, subscriptions, warranties, reminders, notifications, userNotificationSettings, type User, type InsertUser, type Subscription, type InsertSubscription, type Warranty, type InsertWarranty, type Reminder, type InsertReminder, type Notification, type InsertNotification, type UserNotificationSettings, type InsertNotificationSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -37,6 +37,16 @@ export interface IStorage {
     activeWarranties: number;
     dueThisWeek: number;
   }>;
+
+  // Notifications
+  getNotifications(userId: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification & { userId: number }): Promise<Notification>;
+  markNotificationSent(id: number, status: 'sent' | 'failed'): Promise<void>;
+
+  // Notification Settings
+  getUserNotificationSettings(userId: number): Promise<UserNotificationSettings | undefined>;
+  createNotificationSettings(settings: InsertNotificationSettings & { userId: number }): Promise<UserNotificationSettings>;
+  updateNotificationSettings(userId: number, updates: Partial<UserNotificationSettings>): Promise<UserNotificationSettings | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -44,20 +54,28 @@ export class MemStorage implements IStorage {
   private subscriptions: Map<number, Subscription>;
   private warranties: Map<number, Warranty>;
   private reminders: Map<number, Reminder>;
+  private notifications: Map<number, Notification>;
+  private notificationSettings: Map<number, UserNotificationSettings>;
   private currentUserId: number;
   private currentSubscriptionId: number;
   private currentWarrantyId: number;
   private currentReminderId: number;
+  private currentNotificationId: number;
+  private currentSettingsId: number;
 
   constructor() {
     this.users = new Map();
     this.subscriptions = new Map();
     this.warranties = new Map();
     this.reminders = new Map();
+    this.notifications = new Map();
+    this.notificationSettings = new Map();
     this.currentUserId = 1;
     this.currentSubscriptionId = 1;
     this.currentWarrantyId = 1;
     this.currentReminderId = 1;
+    this.currentNotificationId = 1;
+    this.currentSettingsId = 1;
   }
 
   // Users
@@ -76,6 +94,11 @@ export class MemStorage implements IStorage {
     const user: User = {
       ...insertUser,
       id,
+      firstName: insertUser.firstName ?? null,
+      lastName: insertUser.lastName ?? null,
+      email: insertUser.email ?? null,
+      dateOfBirth: insertUser.dateOfBirth ?? null,
+      profileCompleted: insertUser.profileCompleted ?? null,
       createdAt: new Date(),
       isVerified: insertUser.isVerified ?? false,
     };
@@ -268,6 +291,60 @@ export class MemStorage implements IStorage {
       activeWarranties: warranties.length,
       dueThisWeek,
     };
+  }
+
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return Array.from(this.notifications.values()).filter(n => n.userId === userId);
+  }
+
+  async createNotification(notification: InsertNotification & { userId: number }): Promise<Notification> {
+    const newNotification: Notification = {
+      id: this.currentNotificationId++,
+      ...notification,
+      status: notification.status || 'pending',
+      itemType: notification.itemType || null,
+      itemId: notification.itemId || null,
+      sentAt: notification.sentAt || null,
+      createdAt: new Date(),
+    };
+    this.notifications.set(newNotification.id, newNotification);
+    return newNotification;
+  }
+
+  async markNotificationSent(id: number, status: 'sent' | 'failed'): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.status = status;
+      notification.sentAt = new Date();
+    }
+  }
+
+  async getUserNotificationSettings(userId: number): Promise<UserNotificationSettings | undefined> {
+    return Array.from(this.notificationSettings.values()).find(s => s.userId === userId);
+  }
+
+  async createNotificationSettings(settings: InsertNotificationSettings & { userId: number }): Promise<UserNotificationSettings> {
+    const newSettings: UserNotificationSettings = {
+      id: this.currentSettingsId++,
+      ...settings,
+      emailEnabled: settings.emailEnabled ?? true,
+      smsEnabled: settings.smsEnabled ?? false,
+      pushEnabled: settings.pushEnabled ?? true,
+      reminderIntervals: settings.reminderIntervals ?? "7,3,1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.notificationSettings.set(newSettings.id, newSettings);
+    return newSettings;
+  }
+
+  async updateNotificationSettings(userId: number, updates: Partial<UserNotificationSettings>): Promise<UserNotificationSettings | undefined> {
+    const existing = Array.from(this.notificationSettings.values()).find(s => s.userId === userId);
+    if (existing) {
+      Object.assign(existing, updates, { updatedAt: new Date() });
+      return existing;
+    }
+    return undefined;
   }
 }
 
@@ -466,6 +543,57 @@ export class DatabaseStorage implements IStorage {
       activeWarranties: warrantiesCount.count || 0,
       dueThisWeek: (dueThisWeekSubscriptions.count || 0) + (dueThisWeekWarranties.count || 0),
     };
+  }
+
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(sql`${notifications.createdAt} DESC`);
+  }
+
+  async createNotification(notification: InsertNotification & { userId: number }): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async markNotificationSent(id: number, status: 'sent' | 'failed'): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ 
+        status, 
+        sentAt: new Date() 
+      })
+      .where(eq(notifications.id, id));
+  }
+
+  async getUserNotificationSettings(userId: number): Promise<UserNotificationSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(userNotificationSettings)
+      .where(eq(userNotificationSettings.userId, userId));
+    return settings || undefined;
+  }
+
+  async createNotificationSettings(settings: InsertNotificationSettings & { userId: number }): Promise<UserNotificationSettings> {
+    const [newSettings] = await db
+      .insert(userNotificationSettings)
+      .values(settings)
+      .returning();
+    return newSettings;
+  }
+
+  async updateNotificationSettings(userId: number, updates: Partial<UserNotificationSettings>): Promise<UserNotificationSettings | undefined> {
+    const [updatedSettings] = await db
+      .update(userNotificationSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userNotificationSettings.userId, userId))
+      .returning();
+    return updatedSettings || undefined;
   }
 }
 

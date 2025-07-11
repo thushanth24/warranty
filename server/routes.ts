@@ -1,10 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertSubscriptionSchema, insertWarrantySchema, insertReminderSchema, profileSchema } from "@shared/schema";
+import { insertUserSchema, insertSubscriptionSchema, insertWarrantySchema, insertReminderSchema, profileSchema, notificationSettingsSchema } from "@shared/schema";
 import { z } from "zod";
+import { NotificationService } from "./services/notification-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const notificationService = new NotificationService();
+
   // Auth routes
   app.post("/api/auth/send-otp", async (req, res) => {
     try {
@@ -108,6 +111,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertSubscriptionSchema.parse(req.body);
       const subscription = await storage.createSubscription({ ...validatedData, userId });
+      
+      // Schedule automatic reminders for the new subscription
+      try {
+        await notificationService.scheduleSubscriptionReminders(subscription);
+      } catch (error) {
+        console.error("Failed to schedule subscription reminders:", error);
+        // Continue anyway - subscription was created successfully
+      }
+      
       res.status(201).json(subscription);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -171,6 +183,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertWarrantySchema.parse(req.body);
       const warranty = await storage.createWarranty({ ...validatedData, userId });
+      
+      // Schedule automatic reminders for the new warranty
+      try {
+        await notificationService.scheduleWarrantyReminders(warranty);
+      } catch (error) {
+        console.error("Failed to schedule warranty reminders:", error);
+        // Continue anyway - warranty was created successfully
+      }
+      
       res.status(201).json(warranty);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -306,6 +327,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error updating profile:", error);
       res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Notification Settings routes
+  app.get("/api/users/:userId/notification-settings", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      let settings = await storage.getUserNotificationSettings(userId);
+      
+      // Create default settings if they don't exist
+      if (!settings) {
+        settings = await storage.createNotificationSettings({
+          userId,
+          emailEnabled: true,
+          smsEnabled: false,
+          pushEnabled: true,
+          reminderIntervals: "7,3,1",
+        });
+      }
+
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching notification settings:", error);
+      res.status(500).json({ message: "Failed to fetch notification settings" });
+    }
+  });
+
+  app.put("/api/users/:userId/notification-settings", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const validatedData = notificationSettingsSchema.parse(req.body);
+      
+      // Check if settings exist
+      let settings = await storage.getUserNotificationSettings(userId);
+      
+      if (!settings) {
+        // Create new settings
+        settings = await storage.createNotificationSettings({
+          userId,
+          ...validatedData,
+        });
+      } else {
+        // Update existing settings
+        settings = await storage.updateNotificationSettings(userId, validatedData);
+      }
+
+      if (!settings) {
+        return res.status(404).json({ message: "Failed to update notification settings" });
+      }
+
+      res.json(settings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid notification settings", errors: error.errors });
+      }
+      console.error("Error updating notification settings:", error);
+      res.status(500).json({ message: "Failed to update notification settings" });
+    }
+  });
+
+  // Get user notifications history
+  app.get("/api/users/:userId/notifications", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const notifications = await storage.getNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
     }
   });
 

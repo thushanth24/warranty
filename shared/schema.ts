@@ -51,6 +51,31 @@ export const reminders = pgTable("reminders", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  type: text("type").notNull(), // email, sms, push
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  itemType: text("item_type"), // subscription, warranty
+  itemId: integer("item_id"),
+  scheduledFor: timestamp("scheduled_for").notNull(),
+  sentAt: timestamp("sent_at"),
+  status: text("status").default("pending"), // pending, sent, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userNotificationSettings = pgTable("user_notification_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+  emailEnabled: boolean("email_enabled").default(true),
+  smsEnabled: boolean("sms_enabled").default(false),
+  pushEnabled: boolean("push_enabled").default(true),
+  reminderIntervals: text("reminder_intervals").default("7,3,1"), // comma-separated days
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -86,11 +111,29 @@ export const insertReminderSchema = createInsertSchema(reminders).omit({
   createdAt: true,
 });
 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNotificationSettingsSchema = createInsertSchema(userNotificationSettings).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const notificationSettingsSchema = insertNotificationSettingsSchema.extend({
+  reminderIntervals: z.string().regex(/^\d+(,\d+)*$/, "Please enter comma-separated numbers"),
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   subscriptions: many(subscriptions),
   warranties: many(warranties),
   reminders: many(reminders),
+  notifications: many(notifications),
+  notificationSettings: one(userNotificationSettings),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
@@ -114,6 +157,20 @@ export const remindersRelations = relations(reminders, ({ one }) => ({
   }),
 }));
 
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userNotificationSettingsRelations = relations(userNotificationSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userNotificationSettings.userId],
+    references: [users.id],
+  }),
+}));
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
@@ -122,3 +179,7 @@ export type Warranty = typeof warranties.$inferSelect;
 export type InsertWarranty = z.infer<typeof insertWarrantySchema>;
 export type Reminder = typeof reminders.$inferSelect;
 export type InsertReminder = z.infer<typeof insertReminderSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type UserNotificationSettings = typeof userNotificationSettings.$inferSelect;
+export type InsertNotificationSettings = z.infer<typeof insertNotificationSettingsSchema>;

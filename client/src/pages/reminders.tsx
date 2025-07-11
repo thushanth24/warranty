@@ -1,56 +1,45 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Bell, CreditCard, Shield, Calendar, AlertCircle, Mail, MessageSquare, Smartphone, Save, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { getDaysUntil, getUrgencyColor, formatDate } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Shield, CreditCard, Trash2, Plus } from "lucide-react";
-import type { Reminder, Subscription, Warranty } from "@shared/schema";
-
-interface ReminderSettings {
-  subscriptions: {
-    sevenDays: boolean;
-    threeDays: boolean;
-    oneDay: boolean;
-    onDate: boolean;
-  };
-  warranties: {
-    thirtyDays: boolean;
-    sevenDays: boolean;
-    oneDay: boolean;
-    onDate: boolean;
-  };
-}
+import type { Reminder, Subscription, Warranty, UserNotificationSettings, Notification } from "@shared/schema";
 
 export default function RemindersPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [reminderIntervals, setReminderIntervals] = useState("7,3,1");
 
-  const [settings, setSettings] = useState<ReminderSettings>({
-    subscriptions: {
-      sevenDays: true,
-      threeDays: true,
-      oneDay: false,
-      onDate: false,
-    },
-    warranties: {
-      thirtyDays: true,
-      sevenDays: true,
-      oneDay: false,
-      onDate: false,
-    },
+  // Fetch notification settings
+  const { data: notificationSettings, isLoading: settingsLoading } = useQuery({
+    queryKey: ["/api/users", user?.id, "notification-settings"],
+    enabled: !!user?.id,
   });
 
+  // Fetch active reminders
   const { data: reminders, isLoading: remindersLoading } = useQuery({
     queryKey: ["/api/reminders", user?.id],
     enabled: !!user?.id,
   });
 
+  // Fetch notifications history
+  const { data: notifications, isLoading: notificationsLoading } = useQuery({
+    queryKey: ["/api/users", user?.id, "notifications"],
+    enabled: !!user?.id,
+  });
+
+  // Fetch subscriptions and warranties for context
   const { data: subscriptions } = useQuery({
     queryKey: ["/api/subscriptions", user?.id],
     enabled: !!user?.id,
@@ -61,52 +50,56 @@ export default function RemindersPage() {
     enabled: !!user?.id,
   });
 
-  const saveSettingsMutation = useMutation({
-    mutationFn: async () => {
-      // In a real app, this would save to user preferences
-      // For now, we'll just show a success message
-      return new Promise(resolve => setTimeout(resolve, 1000));
+  // Update notification settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (settings: Partial<UserNotificationSettings>) => {
+      return await apiRequest(`/api/users/${user?.id}/notification-settings`, {
+        method: "PUT",
+        body: JSON.stringify(settings),
+      });
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Reminder settings saved successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "notification-settings"] });
+      toast({
+        title: "Settings Updated",
+        description: "Your notification preferences have been saved.",
+      });
     },
     onError: () => {
-      toast({ 
-        title: "Error", 
-        description: "Failed to save reminder settings",
-        variant: "destructive" 
+      toast({
+        title: "Update Failed",
+        description: "Could not save your notification settings. Please try again.",
+        variant: "destructive",
       });
     },
   });
 
-  const deleteReminderMutation = useMutation({
-    mutationFn: (reminderId: number) => 
-      apiRequest("DELETE", `/api/reminders/${user?.id}/${reminderId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/reminders", user?.id] });
-      toast({ title: "Success", description: "Reminder deleted successfully" });
-    },
-    onError: () => {
-      toast({ 
-        title: "Error", 
-        description: "Failed to delete reminder",
-        variant: "destructive" 
-      });
-    },
-  });
+  const handleSettingChange = (key: keyof UserNotificationSettings, value: boolean | string) => {
+    const currentSettings = notificationSettings || {};
+    updateSettingsMutation.mutate({
+      ...currentSettings,
+      [key]: value,
+    });
+  };
 
-  const handleSettingChange = (
-    category: 'subscriptions' | 'warranties',
-    setting: string,
-    checked: boolean
-  ) => {
-    setSettings(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [setting]: checked,
-      },
-    }));
+  const handleIntervalsSave = () => {
+    // Validate intervals format
+    const intervals = reminderIntervals.split(',').map(s => s.trim());
+    const isValid = intervals.every(interval => {
+      const num = parseInt(interval);
+      return !isNaN(num) && num > 0;
+    });
+
+    if (!isValid) {
+      toast({
+        title: "Invalid Format",
+        description: "Please enter comma-separated numbers (e.g., 30,7,3,1)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    handleSettingChange('reminderIntervals', reminderIntervals);
   };
 
   const getItemName = (reminder: Reminder) => {
@@ -115,24 +108,19 @@ export default function RemindersPage() {
       return subscription?.name || 'Unknown Subscription';
     } else {
       const warranty = warranties?.find((w: Warranty) => w.id === reminder.itemId);
-      return warranty?.productName || 'Unknown Warranty';
+      return warranty?.productName || 'Unknown Product';
     }
   };
 
   const getReminderDescription = (reminder: Reminder) => {
     const itemName = getItemName(reminder);
-    const days = reminder.reminderDays;
-    const type = reminder.itemType === 'subscription' ? 'renewal' : 'expiration';
-    
-    return `${itemName} ${type} reminder • Set for ${days} ${days === 1 ? 'day' : 'days'} before`;
+    const daysText = reminder.reminderDays === 1 ? '1 day' : `${reminder.reminderDays} days`;
+    const actionText = reminder.itemType === 'subscription' ? 'renews' : 'expires';
+    return `${itemName} ${actionText} in ${daysText}`;
   };
 
   const getReminderIcon = (reminder: Reminder) => {
-    if (reminder.itemType === 'subscription') {
-      return <CreditCard className="text-blue-600" />;
-    } else {
-      return <Shield className="text-purple-600" />;
-    }
+    return reminder.itemType === 'subscription' ? CreditCard : Shield;
   };
 
   const getActiveReminders = () => {
@@ -140,184 +128,269 @@ export default function RemindersPage() {
     return reminders.filter((reminder: Reminder) => reminder.isActive);
   };
 
+  const getNotificationTypeIcon = (type: string) => {
+    switch (type) {
+      case 'email': return Mail;
+      case 'sms': return MessageSquare;
+      case 'push': return Smartphone;
+      default: return Bell;
+    }
+  };
+
+  const getNotificationStatusColor = (status: string) => {
+    switch (status) {
+      case 'sent': return 'bg-green-100 text-green-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (!user) {
+    return <div>Please log in to view reminders.</div>;
+  }
+
   return (
-    <main className="p-6">
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reminders</h1>
-            <p className="text-gray-600">Configure notification preferences and reminder settings</p>
-          </div>
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Reminder
-          </Button>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Notification Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage how and when you receive reminders
+          </p>
         </div>
-
-        {/* Reminder Settings */}
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Default Reminder Settings</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-medium text-gray-900 mb-4">Subscription Renewals</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.subscriptions.sevenDays}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('subscriptions', 'sevenDays', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">7 days before</span>
-                  </label>
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.subscriptions.threeDays}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('subscriptions', 'threeDays', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">3 days before</span>
-                  </label>
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.subscriptions.oneDay}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('subscriptions', 'oneDay', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">1 day before</span>
-                  </label>
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.subscriptions.onDate}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('subscriptions', 'onDate', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">On renewal date</span>
-                  </label>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900 mb-4">Warranty Expirations</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.warranties.thirtyDays}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('warranties', 'thirtyDays', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">30 days before</span>
-                  </label>
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.warranties.sevenDays}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('warranties', 'sevenDays', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">7 days before</span>
-                  </label>
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.warranties.oneDay}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('warranties', 'oneDay', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">1 day before</span>
-                  </label>
-                  <label className="flex items-center">
-                    <Checkbox 
-                      checked={settings.warranties.onDate}
-                      onCheckedChange={(checked) => 
-                        handleSettingChange('warranties', 'onDate', checked as boolean)
-                      }
-                    />
-                    <span className="ml-3 text-sm text-gray-700">On expiration date</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <Button 
-                onClick={() => saveSettingsMutation.mutate()}
-                disabled={saveSettingsMutation.isPending}
-              >
-                {saveSettingsMutation.isPending ? "Saving..." : "Save Settings"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Active Reminders */}
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Active Reminders</h2>
-            <div className="space-y-4">
-              {remindersLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center space-x-4">
-                      <Skeleton className="h-10 w-10 rounded-lg" />
-                      <div>
-                        <Skeleton className="h-4 w-48 mb-1" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Skeleton className="h-6 w-16" />
-                      <Skeleton className="h-8 w-8" />
-                    </div>
-                  </div>
-                ))
-              ) : getActiveReminders().length ? (
-                getActiveReminders().map((reminder: Reminder) => (
-                  <div key={reminder.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center space-x-4">
-                      <div className="h-10 w-10 bg-warning rounded-lg flex items-center justify-center">
-                        {getReminderIcon(reminder)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {getReminderDescription(reminder)}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Reminder will be sent {reminder.reminderDays} {reminder.reminderDays === 1 ? 'day' : 'days'} before {reminder.itemType === 'subscription' ? 'renewal' : 'expiration'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge className="bg-success text-white">
-                        Active
-                      </Badge>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => deleteReminderMutation.mutate(reminder.id)}
-                        disabled={deleteReminderMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No active reminders</h3>
-                  <p className="text-gray-600 mb-4">
-                    Your reminders will appear here once you add subscriptions or warranties.
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <Settings className="h-8 w-8 text-gray-500" />
       </div>
-    </main>
+
+      {/* Notification Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notification Preferences
+          </CardTitle>
+          <CardDescription>
+            Choose how you'd like to receive reminder notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {settingsLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-full" />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="flex items-center space-x-3">
+                  <Mail className="h-5 w-5 text-blue-500" />
+                  <div className="flex-1">
+                    <Label htmlFor="email-enabled" className="text-sm font-medium">
+                      Email Notifications
+                    </Label>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Receive reminders via email
+                    </p>
+                  </div>
+                  <Switch
+                    id="email-enabled"
+                    checked={notificationSettings?.emailEnabled || false}
+                    onCheckedChange={(checked) => handleSettingChange('emailEnabled', checked)}
+                    disabled={updateSettingsMutation.isPending}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <MessageSquare className="h-5 w-5 text-green-500" />
+                  <div className="flex-1">
+                    <Label htmlFor="sms-enabled" className="text-sm font-medium">
+                      SMS Notifications
+                    </Label>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Receive reminders via text
+                    </p>
+                  </div>
+                  <Switch
+                    id="sms-enabled"
+                    checked={notificationSettings?.smsEnabled || false}
+                    onCheckedChange={(checked) => handleSettingChange('smsEnabled', checked)}
+                    disabled={updateSettingsMutation.isPending}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <Smartphone className="h-5 w-5 text-purple-500" />
+                  <div className="flex-1">
+                    <Label htmlFor="push-enabled" className="text-sm font-medium">
+                      Push Notifications
+                    </Label>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Browser notifications
+                    </p>
+                  </div>
+                  <Switch
+                    id="push-enabled"
+                    checked={notificationSettings?.pushEnabled || false}
+                    onCheckedChange={(checked) => handleSettingChange('pushEnabled', checked)}
+                    disabled={updateSettingsMutation.isPending}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <Label htmlFor="reminder-intervals" className="text-sm font-medium mb-2 block">
+                  Reminder Schedule (days before expiration)
+                </Label>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                  Enter comma-separated numbers (e.g., 30,7,3,1 for 30 days, 7 days, 3 days, and 1 day before)
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    id="reminder-intervals"
+                    value={reminderIntervals}
+                    onChange={(e) => setReminderIntervals(e.target.value)}
+                    placeholder="7,3,1"
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={handleIntervalsSave}
+                    disabled={updateSettingsMutation.isPending}
+                    size="sm"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Current: {notificationSettings?.reminderIntervals || "7,3,1"}
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Active Reminders */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Active Reminders
+          </CardTitle>
+          <CardDescription>
+            Upcoming subscription renewals and warranty expirations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {remindersLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : getActiveReminders().length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No active reminders</p>
+              <p className="text-sm">Add subscriptions or warranties to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {getActiveReminders().map((reminder: Reminder) => {
+                const Icon = getReminderIcon(reminder);
+                return (
+                  <div
+                    key={reminder.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <p className="font-medium">{getReminderDescription(reminder)}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {reminder.reminderDays} days before {reminder.itemType} action
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="capitalize">
+                      {reminder.itemType}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Notification History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Notification History
+          </CardTitle>
+          <CardDescription>
+            Recent notifications sent to you
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {notificationsLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : !notifications || notifications.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No notifications yet</p>
+              <p className="text-sm">Notifications will appear here once sent</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notifications.slice(0, 10).map((notification: Notification) => {
+                const TypeIcon = getNotificationTypeIcon(notification.type);
+                return (
+                  <div
+                    key={notification.id}
+                    className="flex items-start gap-3 p-4 border rounded-lg"
+                  >
+                    <TypeIcon className="h-5 w-5 text-gray-500 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-medium">{notification.title}</h4>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${getNotificationStatusColor(notification.status)}`}
+                          >
+                            {notification.status}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {formatDate(notification.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {notification.message}
+                      </p>
+                      {notification.sentAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Sent: {formatDate(notification.sentAt)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
