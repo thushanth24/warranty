@@ -31,6 +31,11 @@ const navigationItems = [
     icon: Shield,
   },
   {
+    name: "Enhanced Warranties",
+    href: "/enhanced-warranties",
+    icon: Shield,
+  },
+  {
     name: "Reminders",
     href: "/reminders",
     icon: Bell,

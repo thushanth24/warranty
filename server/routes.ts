@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertSubscriptionSchema, insertWarrantySchema, insertReminderSchema, profileSchema, notificationSettingsSchema } from "@shared/schema";
+import { insertUserSchema, insertSubscriptionSchema, insertWarrantySchema, insertReminderSchema, profileSchema, notificationSettingsSchema, insertWarrantyClaimSchema } from "@shared/schema";
 import { z } from "zod";
 import { NotificationService } from "./services/notification-service";
 
@@ -408,6 +408,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching notifications:", error);
       res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  // Warranty Claims routes
+  app.get("/api/warranties/:warrantyId/claims", async (req, res) => {
+    try {
+      const warrantyId = parseInt(req.params.warrantyId);
+      if (isNaN(warrantyId)) {
+        return res.status(400).json({ message: "Invalid warranty ID" });
+      }
+
+      const claims = await storage.getWarrantyClaims(warrantyId);
+      res.json(claims);
+    } catch (error) {
+      console.error("Error fetching warranty claims:", error);
+      res.status(500).json({ message: "Failed to fetch warranty claims" });
+    }
+  });
+
+  app.post("/api/warranties/:warrantyId/claims", async (req, res) => {
+    try {
+      const warrantyId = parseInt(req.params.warrantyId);
+      const userId = parseInt(req.body.userId);
+      
+      if (isNaN(warrantyId) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid warranty or user ID" });
+      }
+
+      const validatedData = insertWarrantyClaimSchema.parse({
+        ...req.body,
+        warrantyId,
+        userId,
+      });
+
+      const claim = await storage.createWarrantyClaim(validatedData);
+      res.status(201).json(claim);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid claim data", errors: error.errors });
+      }
+      console.error("Error creating warranty claim:", error);
+      res.status(500).json({ message: "Failed to create warranty claim" });
+    }
+  });
+
+  app.put("/api/claims/:claimId", async (req, res) => {
+    try {
+      const claimId = parseInt(req.params.claimId);
+      const userId = parseInt(req.body.userId);
+      
+      if (isNaN(claimId) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid claim or user ID" });
+      }
+
+      const updates = req.body;
+      delete updates.userId; // Don't allow userId to be updated
+
+      const claim = await storage.updateWarrantyClaim(claimId, userId, updates);
+      
+      if (!claim) {
+        return res.status(404).json({ message: "Warranty claim not found" });
+      }
+
+      res.json(claim);
+    } catch (error) {
+      console.error("Error updating warranty claim:", error);
+      res.status(500).json({ message: "Failed to update warranty claim" });
+    }
+  });
+
+  app.delete("/api/claims/:claimId", async (req, res) => {
+    try {
+      const claimId = parseInt(req.params.claimId);
+      const userId = parseInt(req.query.userId as string);
+      
+      if (isNaN(claimId) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid claim or user ID" });
+      }
+
+      const success = await storage.deleteWarrantyClaim(claimId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Warranty claim not found" });
+      }
+
+      res.json({ message: "Warranty claim deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting warranty claim:", error);
+      res.status(500).json({ message: "Failed to delete warranty claim" });
     }
   });
 

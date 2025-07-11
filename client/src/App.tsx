@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth";
 import DashboardPage from "@/pages/dashboard";
 import SubscriptionsPage from "@/pages/subscriptions";
 import WarrantiesPage from "@/pages/warranties";
+import EnhancedWarrantiesPage from "@/pages/enhanced-warranties";
 import RemindersPage from "@/pages/reminders";
 import ProfilePage from "@/pages/profile";
 import ProfileSetupPage from "@/pages/profile-setup";
@@ -28,6 +29,7 @@ function AuthenticatedApp() {
         <Route path="/" component={DashboardPage} />
         <Route path="/subscriptions" component={SubscriptionsPage} />
         <Route path="/warranties" component={WarrantiesPage} />
+        <Route path="/enhanced-warranties" component={EnhancedWarrantiesPage} />
         <Route path="/reminders" component={RemindersPage} />
         <Route path="/profile" component={ProfilePage} />
         <Route component={NotFound} />

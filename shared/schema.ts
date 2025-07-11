@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -37,6 +37,30 @@ export const warranties = pgTable("warranties", {
   warrantyDuration: integer("warranty_duration").notNull(), // in months
   expirationDate: timestamp("expiration_date").notNull(),
   description: text("description"),
+  
+  // Enhanced fields
+  brand: text("brand"),
+  model: text("model"),
+  serialNumber: text("serial_number"),
+  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
+  category: text("category"),
+  
+  // Vendor contact information
+  vendorEmail: text("vendor_email"),
+  vendorPhone: text("vendor_phone"),
+  vendorWebsite: text("vendor_website"),
+  vendorAddress: text("vendor_address"),
+  
+  // Document attachments (JSON arrays of file paths/URLs)
+  receiptPhotos: json("receipt_photos").$type<string[]>().default([]),
+  warrantyDocuments: json("warranty_documents").$type<string[]>().default([]),
+  
+  // Transfer tracking
+  isTransferred: boolean("is_transferred").default(false),
+  transferredTo: text("transferred_to"),
+  transferDate: timestamp("transfer_date"),
+  transferNotes: text("transfer_notes"),
+  
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -76,6 +100,33 @@ export const userNotificationSettings = pgTable("user_notification_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const warrantyClaims = pgTable("warranty_claims", {
+  id: serial("id").primaryKey(),
+  warrantyId: integer("warranty_id").notNull(),
+  userId: integer("user_id").notNull(),
+  claimNumber: text("claim_number"),
+  issueDescription: text("issue_description").notNull(),
+  claimDate: timestamp("claim_date").notNull(),
+  status: text("status").default("submitted"), // submitted, in_progress, approved, denied, completed
+  vendorResponse: text("vendor_response"),
+  resolution: text("resolution"),
+  claimAmount: decimal("claim_amount", { precision: 10, scale: 2 }),
+  
+  // Supporting documents
+  supportingDocuments: json("supporting_documents").$type<string[]>().default([]),
+  
+  // Contact tracking
+  contactHistory: json("contact_history").$type<Array<{
+    date: string;
+    method: string; // email, phone, chat
+    contact: string;
+    notes: string;
+  }>>().default([]),
+  
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -101,8 +152,13 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
 
 export const insertWarrantySchema = createInsertSchema(warranties).omit({
   id: true,
-  userId: true,
   createdAt: true,
+});
+
+export const insertWarrantyClaimSchema = createInsertSchema(warrantyClaims).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
 });
 
 export const insertReminderSchema = createInsertSchema(reminders).omit({
@@ -131,6 +187,7 @@ export const notificationSettingsSchema = insertNotificationSettingsSchema.exten
 export const usersRelations = relations(users, ({ many, one }) => ({
   subscriptions: many(subscriptions),
   warranties: many(warranties),
+  warrantyClaims: many(warrantyClaims),
   reminders: many(reminders),
   notifications: many(notifications),
   notificationSettings: one(userNotificationSettings),
@@ -143,9 +200,21 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   }),
 }));
 
-export const warrantiesRelations = relations(warranties, ({ one }) => ({
+export const warrantiesRelations = relations(warranties, ({ one, many }) => ({
   user: one(users, {
     fields: [warranties.userId],
+    references: [users.id],
+  }),
+  claims: many(warrantyClaims),
+}));
+
+export const warrantyClaimsRelations = relations(warrantyClaims, ({ one }) => ({
+  warranty: one(warranties, {
+    fields: [warrantyClaims.warrantyId],
+    references: [warranties.id],
+  }),
+  user: one(users, {
+    fields: [warrantyClaims.userId],
     references: [users.id],
   }),
 }));
@@ -183,3 +252,5 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type UserNotificationSettings = typeof userNotificationSettings.$inferSelect;
 export type InsertNotificationSettings = z.infer<typeof insertNotificationSettingsSchema>;
+export type WarrantyClaim = typeof warrantyClaims.$inferSelect;
+export type InsertWarrantyClaim = z.infer<typeof insertWarrantyClaimSchema>;

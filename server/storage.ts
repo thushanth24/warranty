@@ -1,4 +1,4 @@
-import { users, subscriptions, warranties, reminders, notifications, userNotificationSettings, type User, type InsertUser, type Subscription, type InsertSubscription, type Warranty, type InsertWarranty, type Reminder, type InsertReminder, type Notification, type InsertNotification, type UserNotificationSettings, type InsertNotificationSettings } from "@shared/schema";
+import { users, subscriptions, warranties, reminders, notifications, userNotificationSettings, warrantyClaims, type User, type InsertUser, type Subscription, type InsertSubscription, type Warranty, type InsertWarranty, type Reminder, type InsertReminder, type Notification, type InsertNotification, type UserNotificationSettings, type InsertNotificationSettings, type WarrantyClaim, type InsertWarrantyClaim } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -47,6 +47,13 @@ export interface IStorage {
   getUserNotificationSettings(userId: number): Promise<UserNotificationSettings | undefined>;
   createNotificationSettings(settings: InsertNotificationSettings & { userId: number }): Promise<UserNotificationSettings>;
   updateNotificationSettings(userId: number, updates: Partial<UserNotificationSettings>): Promise<UserNotificationSettings | undefined>;
+
+  // Warranty Claims
+  getWarrantyClaims(warrantyId: number): Promise<WarrantyClaim[]>;
+  getWarrantyClaim(id: number, userId: number): Promise<WarrantyClaim | undefined>;
+  createWarrantyClaim(claim: InsertWarrantyClaim & { userId: number }): Promise<WarrantyClaim>;
+  updateWarrantyClaim(id: number, userId: number, updates: Partial<WarrantyClaim>): Promise<WarrantyClaim | undefined>;
+  deleteWarrantyClaim(id: number, userId: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -56,12 +63,14 @@ export class MemStorage implements IStorage {
   private reminders: Map<number, Reminder>;
   private notifications: Map<number, Notification>;
   private notificationSettings: Map<number, UserNotificationSettings>;
+  private warrantyClaims: Map<number, WarrantyClaim>;
   private currentUserId: number;
   private currentSubscriptionId: number;
   private currentWarrantyId: number;
   private currentReminderId: number;
   private currentNotificationId: number;
   private currentSettingsId: number;
+  private currentClaimId: number;
 
   constructor() {
     this.users = new Map();
@@ -70,12 +79,14 @@ export class MemStorage implements IStorage {
     this.reminders = new Map();
     this.notifications = new Map();
     this.notificationSettings = new Map();
+    this.warrantyClaims = new Map();
     this.currentUserId = 1;
     this.currentSubscriptionId = 1;
     this.currentWarrantyId = 1;
     this.currentReminderId = 1;
     this.currentNotificationId = 1;
     this.currentSettingsId = 1;
+    this.currentClaimId = 1;
   }
 
   // Users
@@ -346,6 +357,54 @@ export class MemStorage implements IStorage {
     }
     return undefined;
   }
+
+  // Warranty Claims
+  async getWarrantyClaims(warrantyId: number): Promise<WarrantyClaim[]> {
+    return Array.from(this.warrantyClaims.values()).filter(
+      (claim) => claim.warrantyId === warrantyId
+    );
+  }
+
+  async getWarrantyClaim(id: number, userId: number): Promise<WarrantyClaim | undefined> {
+    const claim = this.warrantyClaims.get(id);
+    return claim && claim.userId === userId ? claim : undefined;
+  }
+
+  async createWarrantyClaim(insertClaim: InsertWarrantyClaim & { userId: number }): Promise<WarrantyClaim> {
+    const id = this.currentClaimId++;
+    const claim: WarrantyClaim = {
+      ...insertClaim,
+      id,
+      claimNumber: insertClaim.claimNumber ?? null,
+      vendorResponse: insertClaim.vendorResponse ?? null,
+      resolution: insertClaim.resolution ?? null,
+      claimAmount: insertClaim.claimAmount ?? null,
+      supportingDocuments: insertClaim.supportingDocuments ?? [],
+      contactHistory: insertClaim.contactHistory ?? [],
+      lastUpdated: new Date(),
+      createdAt: new Date(),
+    };
+    this.warrantyClaims.set(id, claim);
+    return claim;
+  }
+
+  async updateWarrantyClaim(id: number, userId: number, updates: Partial<WarrantyClaim>): Promise<WarrantyClaim | undefined> {
+    const claim = this.warrantyClaims.get(id);
+    if (claim && claim.userId === userId) {
+      const updatedClaim = { ...claim, ...updates, lastUpdated: new Date() };
+      this.warrantyClaims.set(id, updatedClaim);
+      return updatedClaim;
+    }
+    return undefined;
+  }
+
+  async deleteWarrantyClaim(id: number, userId: number): Promise<boolean> {
+    const claim = this.warrantyClaims.get(id);
+    if (claim && claim.userId === userId) {
+      return this.warrantyClaims.delete(id);
+    }
+    return false;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -595,6 +654,43 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedSettings || undefined;
   }
+
+  // Warranty Claims
+  async getWarrantyClaims(warrantyId: number): Promise<WarrantyClaim[]> {
+    return await db.select().from(warrantyClaims).where(eq(warrantyClaims.warrantyId, warrantyId));
+  }
+
+  async getWarrantyClaim(id: number, userId: number): Promise<WarrantyClaim | undefined> {
+    const [claim] = await db
+      .select()
+      .from(warrantyClaims)
+      .where(and(eq(warrantyClaims.id, id), eq(warrantyClaims.userId, userId)));
+    return claim || undefined;
+  }
+
+  async createWarrantyClaim(insertClaim: InsertWarrantyClaim & { userId: number }): Promise<WarrantyClaim> {
+    const [claim] = await db
+      .insert(warrantyClaims)
+      .values(insertClaim)
+      .returning();
+    return claim;
+  }
+
+  async updateWarrantyClaim(id: number, userId: number, updates: Partial<WarrantyClaim>): Promise<WarrantyClaim | undefined> {
+    const [claim] = await db
+      .update(warrantyClaims)
+      .set({ ...updates, lastUpdated: new Date() })
+      .where(and(eq(warrantyClaims.id, id), eq(warrantyClaims.userId, userId)))
+      .returning();
+    return claim || undefined;
+  }
+
+  async deleteWarrantyClaim(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(warrantyClaims)
+      .where(and(eq(warrantyClaims.id, id), eq(warrantyClaims.userId, userId)));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
