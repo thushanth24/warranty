@@ -51,8 +51,13 @@ export default function AuthPage() {
     mutationFn: ({ phone, otp }: { phone: string; otp: string }) => 
       apiRequest("POST", "/api/auth/verify-otp", { phoneNumber: phone, otp }),
     onSuccess: (response: any) => {
+      console.log("OTP Verification Success:", response);
       login(response.user);
       toast({ title: "Welcome!", description: "Successfully authenticated" });
+      // Force a slight delay to ensure state updates
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
     },
     onError: () => {
       toast({ 

@@ -256,7 +256,10 @@ export default function EnhancedWarrantiesPage() {
     { value: "isTransferred", label: "Is Transferred", type: "boolean" as const },
   ];
 
-  if (!user || !isAuthenticated) {
+  // Debug authentication state
+  console.log("Enhanced Warranties - Auth State:", { user, isAuthenticated, userId: user?.id });
+
+  if (!isAuthenticated || !user) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -264,6 +267,7 @@ export default function EnhancedWarrantiesPage() {
             <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
             <p className="text-gray-600 mb-4">Please log in to view your warranties.</p>
+            <p className="text-xs text-gray-500">Debug: isAuth={String(isAuthenticated)}, user={user ? "exists" : "null"}</p>
           </CardContent>
         </Card>
       </div>
