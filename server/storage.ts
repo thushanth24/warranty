@@ -1,4 +1,6 @@
 import { users, subscriptions, warranties, reminders, type User, type InsertUser, type Subscription, type InsertSubscription, type Warranty, type InsertWarranty, type Reminder, type InsertReminder } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -269,4 +271,202 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async getSubscriptions(userId: number): Promise<Subscription[]> {
+    return await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
+  }
+
+  async getSubscription(id: number, userId: number): Promise<Subscription | undefined> {
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)));
+    return subscription || undefined;
+  }
+
+  async createSubscription(subscription: InsertSubscription & { userId: number }): Promise<Subscription> {
+    const [newSubscription] = await db
+      .insert(subscriptions)
+      .values(subscription)
+      .returning();
+    return newSubscription;
+  }
+
+  async updateSubscription(id: number, userId: number, updates: Partial<Subscription>): Promise<Subscription | undefined> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set(updates)
+      .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)))
+      .returning();
+    return subscription || undefined;
+  }
+
+  async deleteSubscription(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(subscriptions)
+      .where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getWarranties(userId: number): Promise<Warranty[]> {
+    return await db.select().from(warranties).where(eq(warranties.userId, userId));
+  }
+
+  async getWarranty(id: number, userId: number): Promise<Warranty | undefined> {
+    const [warranty] = await db
+      .select()
+      .from(warranties)
+      .where(and(eq(warranties.id, id), eq(warranties.userId, userId)));
+    return warranty || undefined;
+  }
+
+  async createWarranty(warranty: InsertWarranty & { userId: number }): Promise<Warranty> {
+    const [newWarranty] = await db
+      .insert(warranties)
+      .values(warranty)
+      .returning();
+    return newWarranty;
+  }
+
+  async updateWarranty(id: number, userId: number, updates: Partial<Warranty>): Promise<Warranty | undefined> {
+    const [warranty] = await db
+      .update(warranties)
+      .set(updates)
+      .where(and(eq(warranties.id, id), eq(warranties.userId, userId)))
+      .returning();
+    return warranty || undefined;
+  }
+
+  async deleteWarranty(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(warranties)
+      .where(and(eq(warranties.id, id), eq(warranties.userId, userId)));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getReminders(userId: number): Promise<Reminder[]> {
+    return await db.select().from(reminders).where(eq(reminders.userId, userId));
+  }
+
+  async getRemindersByItem(userId: number, itemType: string, itemId: number): Promise<Reminder[]> {
+    return await db
+      .select()
+      .from(reminders)
+      .where(and(
+        eq(reminders.userId, userId),
+        eq(reminders.itemType, itemType),
+        eq(reminders.itemId, itemId)
+      ));
+  }
+
+  async createReminder(reminder: InsertReminder & { userId: number }): Promise<Reminder> {
+    const [newReminder] = await db
+      .insert(reminders)
+      .values(reminder)
+      .returning();
+    return newReminder;
+  }
+
+  async updateReminder(id: number, userId: number, updates: Partial<Reminder>): Promise<Reminder | undefined> {
+    const [reminder] = await db
+      .update(reminders)
+      .set(updates)
+      .where(and(eq(reminders.id, id), eq(reminders.userId, userId)))
+      .returning();
+    return reminder || undefined;
+  }
+
+  async deleteReminder(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(reminders)
+      .where(and(eq(reminders.id, id), eq(reminders.userId, userId)));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getDashboardStats(userId: number): Promise<{
+    activeSubscriptions: number;
+    monthlySpend: number;
+    activeWarranties: number;
+    dueThisWeek: number;
+  }> {
+    const [subscriptionsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.isActive, true)));
+
+    const [monthlySpendResult] = await db
+      .select({ 
+        total: sql<number>`COALESCE(SUM(CASE 
+          WHEN billing_cycle = 'weekly' THEN amount * 4.33 
+          WHEN billing_cycle = 'monthly' THEN amount 
+          WHEN billing_cycle = 'quarterly' THEN amount / 3 
+          WHEN billing_cycle = 'yearly' THEN amount / 12 
+          ELSE amount 
+        END), 0)`
+      })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.isActive, true)));
+
+    const [warrantiesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(warranties)
+      .where(and(eq(warranties.userId, userId), eq(warranties.isActive, true)));
+
+    const weekFromNow = new Date();
+    weekFromNow.setDate(weekFromNow.getDate() + 7);
+
+    const [dueThisWeekSubscriptions] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subscriptions)
+      .where(and(
+        eq(subscriptions.userId, userId),
+        eq(subscriptions.isActive, true),
+        sql`next_renewal_date <= ${weekFromNow}`
+      ));
+
+    const [dueThisWeekWarranties] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(warranties)
+      .where(and(
+        eq(warranties.userId, userId),
+        eq(warranties.isActive, true),
+        sql`expiration_date <= ${weekFromNow}`
+      ));
+
+    return {
+      activeSubscriptions: subscriptionsCount.count || 0,
+      monthlySpend: parseFloat(monthlySpendResult.total?.toString() || "0"),
+      activeWarranties: warrantiesCount.count || 0,
+      dueThisWeek: (dueThisWeekSubscriptions.count || 0) + (dueThisWeekWarranties.count || 0),
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();

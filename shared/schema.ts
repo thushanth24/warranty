@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -67,6 +68,34 @@ export const insertReminderSchema = createInsertSchema(reminders).omit({
   userId: true,
   createdAt: true,
 });
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  subscriptions: many(subscriptions),
+  warranties: many(warranties),
+  reminders: many(reminders),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const warrantiesRelations = relations(warranties, ({ one }) => ({
+  user: one(users, {
+    fields: [warranties.userId],
+    references: [users.id],
+  }),
+}));
+
+export const remindersRelations = relations(reminders, ({ one }) => ({
+  user: one(users, {
+    fields: [reminders.userId],
+    references: [users.id],
+  }),
+}));
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
