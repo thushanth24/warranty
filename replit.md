@@ -1,10 +1,15 @@
 # SubTracker Pro
 
 ## Overview
-SubTracker Pro is a full-stack subscription and warranty management application built with React, Express, and PostgreSQL. The application helps users track their subscriptions, warranties, and receive reminders for upcoming renewals or expirations.
+SubTracker Pro is a comprehensive subscription and warranty management application built with React, Express, and PostgreSQL. The application features phone-based OTP authentication, advanced warranty management with claims tracking, bulk operations, advanced search capabilities, theme system, and comprehensive notification management.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes
+- **Authentication System Fixed** (July 11, 2025): Implemented proper OTP generation with console logging, fixed authentication state persistence issues, and resolved Enhanced Warranties/Reminders page access
+- **UX Improvements Completed** (July 11, 2025): Added theme system, bulk operations, advanced search, data backup functionality, and integrated all features into enhanced warranties page
+- **OTP Verification Enhanced** (July 11, 2025): Real 6-digit OTP generation, 5-minute expiration, detailed logging, and proper error handling
 
 ## System Architecture
 

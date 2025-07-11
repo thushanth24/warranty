@@ -11,14 +11,24 @@ interface AuthState {
 
 export const useAuth = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
-      login: (user: User) => set({ user, isAuthenticated: true }),
-      logout: () => set({ user: null, isAuthenticated: false }),
+      login: (user: User) => {
+        console.log("Auth: Logging in user:", user);
+        set({ user, isAuthenticated: true });
+      },
+      logout: () => {
+        console.log("Auth: Logging out");
+        set({ user: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'auth-storage',
+      partialize: (state) => ({ 
+        user: state.user, 
+        isAuthenticated: state.isAuthenticated 
+      }),
     }
   )
 );
