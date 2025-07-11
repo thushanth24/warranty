@@ -7,6 +7,9 @@ import { NotificationService } from "./services/notification-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const notificationService = new NotificationService();
+  
+  // Store OTPs temporarily (in production, use Redis or similar)
+  const otpStore = new Map<string, { otp: string; expires: number }>();
 
   // Auth routes
   app.post("/api/auth/send-otp", async (req, res) => {
@@ -17,10 +20,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Phone number is required" });
       }
 
-      // In a real app, you would send an actual OTP via SMS
-      // For this demo, we'll just return success
+      // Generate a random 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Store OTP with 5 minute expiration
+      const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
+      otpStore.set(phoneNumber, { otp, expires });
+      
+      // Log OTP to console for development
+      console.log(`🔐 OTP for ${phoneNumber}: ${otp}`);
+      console.log(`📱 Please enter this OTP to complete verification`);
+      
       res.json({ message: "OTP sent successfully" });
     } catch (error) {
+      console.error("Error sending OTP:", error);
       res.status(500).json({ message: "Failed to send OTP" });
     }
   });
@@ -33,22 +46,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Phone number and OTP are required" });
       }
 
-      // In a real app, you would verify the actual OTP
-      // For this demo, we'll accept any 6-digit code
-      if (otp.length !== 6) {
-        return res.status(400).json({ message: "Invalid OTP" });
+      // Check if OTP exists and is valid
+      const storedOtpData = otpStore.get(phoneNumber);
+      
+      if (!storedOtpData) {
+        console.log(`❌ No OTP found for ${phoneNumber}`);
+        return res.status(400).json({ message: "No OTP found. Please request a new one." });
       }
+      
+      if (Date.now() > storedOtpData.expires) {
+        console.log(`⏰ OTP expired for ${phoneNumber}`);
+        otpStore.delete(phoneNumber);
+        return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+      }
+      
+      if (otp !== storedOtpData.otp) {
+        console.log(`❌ Invalid OTP for ${phoneNumber}. Expected: ${storedOtpData.otp}, Received: ${otp}`);
+        return res.status(400).json({ message: "Invalid OTP. Please try again." });
+      }
+
+      // OTP is valid, clean up
+      otpStore.delete(phoneNumber);
+      console.log(`✅ OTP verified successfully for ${phoneNumber}`);
 
       // Get or create user
       let user = await storage.getUserByPhoneNumber(phoneNumber);
       if (!user) {
+        console.log(`👤 Creating new user for ${phoneNumber}`);
         user = await storage.createUser({ phoneNumber, isVerified: true });
       } else {
+        console.log(`👤 User found, updating verification status for ${phoneNumber}`);
         user = await storage.updateUser(user.id, { isVerified: true });
       }
 
       res.json({ user, message: "OTP verified successfully" });
     } catch (error) {
+      console.error("Error verifying OTP:", error);
       res.status(500).json({ message: "Failed to verify OTP" });
     }
   });
