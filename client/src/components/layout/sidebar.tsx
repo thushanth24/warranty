@@ -13,6 +13,7 @@ import {
   Menu,
   X
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navigationItems = [
   {
@@ -127,6 +128,9 @@ export default function Sidebar() {
                   {user.email}
                 </p>
               )}
+            </div>
+            <div className="flex gap-2 mb-3">
+              <ThemeToggle />
             </div>
             <Button
               variant="outline"

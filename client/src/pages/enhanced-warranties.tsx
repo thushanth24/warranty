@@ -35,6 +35,10 @@ import { useToast } from "@/hooks/use-toast";
 import { getDaysUntil, getUrgencyColor, formatDate, formatCurrency } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import EnhancedWarrantyForm from "@/components/forms/enhanced-warranty-form";
+import { BulkActions } from "@/components/ui/bulk-actions";
+import { AdvancedSearch, type SearchFilter } from "@/components/ui/advanced-search";
+import { DataBackup } from "@/components/ui/data-backup";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Warranty, WarrantyClaim } from "@shared/schema";
 
 interface WarrantyClaimFormData {
@@ -57,6 +61,8 @@ export default function EnhancedWarrantiesPage() {
   const [selectedWarranty, setSelectedWarranty] = useState<Warranty | undefined>();
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferTo, setTransferTo] = useState("");
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [searchFilters, setSearchFilters] = useState<SearchFilter[]>([]);
 
   const { data: warranties, isLoading } = useQuery({
     queryKey: ["/api/warranties", user?.id],
@@ -186,6 +192,70 @@ export default function EnhancedWarrantiesPage() {
 
   const categories = Array.from(new Set((warranties || []).map((w: Warranty) => w.category).filter(Boolean)));
 
+  // Bulk operations handlers
+  const handleBulkDelete = async (selectedIds: number[]) => {
+    for (const id of selectedIds) {
+      await deleteWarrantyMutation.mutateAsync(id);
+    }
+  };
+
+  const handleBulkArchive = async (selectedIds: number[]) => {
+    // Archive selected warranties by setting isActive to false
+    for (const id of selectedIds) {
+      await apiRequest(`/api/warranties/${user?.id}/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ isActive: false }),
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/warranties", user?.id] });
+  };
+
+  const handleAdvancedSearch = (filters: SearchFilter[]) => {
+    setSearchFilters(filters);
+  };
+
+  // Apply advanced search filters
+  const applyAdvancedFilters = (warranties: Warranty[]) => {
+    if (searchFilters.length === 0) return warranties;
+    
+    return warranties.filter(warranty => {
+      return searchFilters.every(filter => {
+        const value = warranty[filter.field as keyof Warranty];
+        
+        switch (filter.operator) {
+          case "contains":
+            return value?.toString().toLowerCase().includes(filter.value.toLowerCase());
+          case "equals":
+            return value === filter.value;
+          case "greater_than":
+            return new Date(value as string) > new Date(filter.value);
+          case "less_than":
+            return new Date(value as string) < new Date(filter.value);
+          case "is_null":
+            return !value;
+          case "is_not_null":
+            return !!value;
+          default:
+            return true;
+        }
+      });
+    });
+  };
+
+  const finalFilteredWarranties = applyAdvancedFilters(filteredWarranties);
+
+  // Field options for advanced search
+  const searchFieldOptions = [
+    { value: "productName", label: "Product Name", type: "text" as const },
+    { value: "brand", label: "Brand", type: "text" as const },
+    { value: "vendor", label: "Vendor", type: "text" as const },
+    { value: "category", label: "Category", type: "select" as const, options: categories.map(cat => ({ value: cat, label: cat })) },
+    { value: "expirationDate", label: "Expiration Date", type: "date" as const },
+    { value: "purchaseDate", label: "Purchase Date", type: "date" as const },
+    { value: "isActive", label: "Is Active", type: "boolean" as const },
+    { value: "isTransferred", label: "Is Transferred", type: "boolean" as const },
+  ];
+
   if (!user) {
     return <div>Please log in to view warranties.</div>;
   }
@@ -199,33 +269,50 @@ export default function EnhancedWarrantiesPage() {
             Track warranties with complete vendor info, documents, and claim management
           </p>
         </div>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingWarranty(undefined)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Warranty
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingWarranty ? "Edit Warranty" : "Add New Warranty"}
-              </DialogTitle>
-            </DialogHeader>
-            <EnhancedWarrantyForm
-              warranty={editingWarranty}
-              onSuccess={() => {
-                setIsFormOpen(false);
-                setEditingWarranty(undefined);
-              }}
-              onCancel={() => {
-                setIsFormOpen(false);
-                setEditingWarranty(undefined);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <DataBackup onBackupComplete={() => queryClient.invalidateQueries()} />
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingWarranty(undefined)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Warranty
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingWarranty ? "Edit Warranty" : "Add New Warranty"}
+                </DialogTitle>
+              </DialogHeader>
+              <EnhancedWarrantyForm 
+                warranty={editingWarranty}
+                onSuccess={() => {
+                  setIsFormOpen(false);
+                  setEditingWarranty(undefined);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Advanced Search */}
+      <AdvancedSearch
+        onSearch={handleAdvancedSearch}
+        fieldOptions={searchFieldOptions}
+        placeholder="Search warranties by product, brand, or vendor..."
+      />
+
+      {/* Bulk Actions */}
+      <BulkActions
+        items={finalFilteredWarranties}
+        selectedItems={selectedItems}
+        onSelectionChange={setSelectedItems}
+        onBulkDelete={handleBulkDelete}
+        onBulkArchive={handleBulkArchive}
+        itemName="warranty"
+        getItemDisplay={(warranty) => `${warranty.productName} - ${warranty.vendor}`}
+      />
 
       {/* Filters */}
       <Card>
@@ -298,11 +385,23 @@ export default function EnhancedWarrantiesPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredWarranties.map((warranty: Warranty) => (
+          {finalFilteredWarranties.map((warranty: Warranty) => (
             <Card key={warranty.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={selectedItems.has(warranty.id)}
+                      onCheckedChange={(checked) => {
+                        const newSelected = new Set(selectedItems);
+                        if (checked) {
+                          newSelected.add(warranty.id);
+                        } else {
+                          newSelected.delete(warranty.id);
+                        }
+                        setSelectedItems(newSelected);
+                      }}
+                    />
                     {getUrgencyIcon(warranty)}
                     <CardTitle className="text-lg">{warranty.productName}</CardTitle>
                   </div>
