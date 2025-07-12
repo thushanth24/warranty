@@ -1,0 +1,275 @@
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  phoneNumber: text("phone_number").notNull().unique(),
+  isVerified: boolean("is_verified").default(false),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  dateOfBirth: timestamp("date_of_birth"),
+  profileCompleted: boolean("profile_completed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  billingCycle: text("billing_cycle").notNull(), // weekly, monthly, quarterly, yearly
+  category: text("category"),
+  nextRenewalDate: timestamp("next_renewal_date").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const warranties = pgTable("warranties", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  productName: text("product_name").notNull(),
+  vendor: text("vendor").notNull(),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  warrantyDuration: integer("warranty_duration").notNull(), // in months
+  expirationDate: timestamp("expiration_date").notNull(),
+  description: text("description"),
+  
+  // Enhanced fields
+  brand: text("brand"),
+  model: text("model"),
+  serialNumber: text("serial_number"),
+  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
+  category: text("category"),
+  
+  // Vendor contact information
+  vendorEmail: text("vendor_email"),
+  vendorPhone: text("vendor_phone"),
+  vendorWebsite: text("vendor_website"),
+  vendorAddress: text("vendor_address"),
+  
+  // Document attachments (JSON arrays of file paths/URLs)
+  receiptPhotos: json("receipt_photos").$type<string[]>().default([]),
+  warrantyDocuments: json("warranty_documents").$type<string[]>().default([]),
+  
+  // Transfer tracking
+  isTransferred: boolean("is_transferred").default(false),
+  transferredTo: text("transferred_to"),
+  transferDate: timestamp("transfer_date"),
+  transferNotes: text("transfer_notes"),
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const reminders = pgTable("reminders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  itemType: text("item_type").notNull(), // subscription, warranty
+  itemId: integer("item_id").notNull(),
+  reminderDays: integer("reminder_days").notNull(), // days before expiration/renewal
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  type: text("type").notNull(), // email, sms, push
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  itemType: text("item_type"), // subscription, warranty
+  itemId: integer("item_id"),
+  scheduledFor: timestamp("scheduled_for").notNull(),
+  sentAt: timestamp("sent_at"),
+  status: text("status").default("pending"), // pending, sent, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userNotificationSettings = pgTable("user_notification_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+  emailEnabled: boolean("email_enabled").default(true),
+  smsEnabled: boolean("sms_enabled").default(false),
+  pushEnabled: boolean("push_enabled").default(true),
+  reminderIntervals: text("reminder_intervals").default("7,3,1"), // comma-separated days
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const warrantyClaims = pgTable("warranty_claims", {
+  id: serial("id").primaryKey(),
+  warrantyId: integer("warranty_id").notNull(),
+  userId: integer("user_id").notNull(),
+  claimNumber: text("claim_number"),
+  issueDescription: text("issue_description").notNull(),
+  claimDate: timestamp("claim_date").notNull(),
+  status: text("status").default("submitted"), // submitted, in_progress, approved, denied, completed
+  vendorResponse: text("vendor_response"),
+  resolution: text("resolution"),
+  claimAmount: decimal("claim_amount", { precision: 10, scale: 2 }),
+  
+  // Supporting documents
+  supportingDocuments: json("supporting_documents").$type<string[]>().default([]),
+  
+  // Contact tracking
+  contactHistory: json("contact_history").$type<Array<{
+    date: string;
+    method: string; // email, phone, chat
+    contact: string;
+    notes: string;
+  }>>().default([]),
+  
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const profileSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+});
+
+export const insertWarrantySchema = z.object({
+  userId: z.number(),
+  productName: z.string().min(1),
+  vendor: z.string().min(1),
+  purchaseDate: z.preprocess(arg => new Date(arg as string), z.date()),
+  warrantyDuration: z.number(),
+  expirationDate: z.preprocess(arg => new Date(arg as string), z.date()),
+  description: z.string().optional(),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  purchasePrice: z.string().optional(), // or z.number().optional() if you parse it
+  category: z.string().optional(),
+  vendorEmail: z.string().optional(),
+  vendorPhone: z.string().optional(),
+  vendorWebsite: z.string().optional(),
+  vendorAddress: z.string().optional(),
+  receiptPhotos: z.array(z.string()).optional(),
+  warrantyDocuments: z.array(z.string()).optional(),
+  isTransferred: z.boolean().optional(),
+  transferredTo: z.string().optional(),
+  transferDate: z.preprocess(arg => arg ? new Date(arg as string) : undefined, z.date().optional()),
+  transferNotes: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const insertWarrantyClaimSchema = createInsertSchema(warrantyClaims).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
+});
+
+export const insertReminderSchema = createInsertSchema(reminders).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNotificationSettingsSchema = createInsertSchema(userNotificationSettings).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const notificationSettingsSchema = z.object({
+  emailEnabled: z.boolean(),
+  smsEnabled: z.boolean(),
+  pushEnabled: z.boolean(),
+  reminderIntervals: z.string().regex(/^\d+(,\d+)*$/, "Please enter comma-separated numbers"),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many, one }) => ({
+  subscriptions: many(subscriptions),
+  warranties: many(warranties),
+  warrantyClaims: many(warrantyClaims),
+  reminders: many(reminders),
+  notifications: many(notifications),
+  notificationSettings: one(userNotificationSettings),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const warrantiesRelations = relations(warranties, ({ one, many }) => ({
+  user: one(users, {
+    fields: [warranties.userId],
+    references: [users.id],
+  }),
+  claims: many(warrantyClaims),
+}));
+
+export const warrantyClaimsRelations = relations(warrantyClaims, ({ one }) => ({
+  warranty: one(warranties, {
+    fields: [warrantyClaims.warrantyId],
+    references: [warranties.id],
+  }),
+  user: one(users, {
+    fields: [warrantyClaims.userId],
+    references: [users.id],
+  }),
+}));
+
+export const remindersRelations = relations(reminders, ({ one }) => ({
+  user: one(users, {
+    fields: [reminders.userId],
+    references: [users.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userNotificationSettingsRelations = relations(userNotificationSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userNotificationSettings.userId],
+    references: [users.id],
+  }),
+}));
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+export type Warranty = typeof warranties.$inferSelect;
+export type InsertWarranty = typeof warranties.$inferInsert;
+export type Reminder = typeof reminders.$inferSelect;
+export type InsertReminder = typeof reminders.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+export type UserNotificationSettings = typeof userNotificationSettings.$inferSelect;
+export type InsertNotificationSettings = typeof userNotificationSettings.$inferInsert;
+export type WarrantyClaim = typeof warrantyClaims.$inferSelect;
+export type InsertWarrantyClaim = typeof warrantyClaims.$inferInsert;
