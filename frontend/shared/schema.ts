@@ -1,4 +1,16 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } from "drizzle-orm/pg-core";
+
+export type User = {
+  id: number;
+  phoneNumber: string;
+  isVerified: boolean;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  dateOfBirth?: Date | null;
+  profileCompleted: boolean;
+  createdAt: Date | string;
+};
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
