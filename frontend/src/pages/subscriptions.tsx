@@ -55,12 +55,12 @@ export default function SubscriptionsPage() {
   });
 
   return (
-    <main className="p-6">
+    <main className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Subscriptions</h1>
-            <p className="text-gray-600">Manage your recurring subscriptions</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Subscriptions</h1>
+            <p className="text-gray-600 dark:text-gray-300">Manage your recurring subscriptions</p>
           </div>
           <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
@@ -69,64 +69,64 @@ export default function SubscriptionsPage() {
         </div>
 
         {/* Filters and Search */}
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-0 dark:shadow-lg">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-400 h-4 w-4" />
                   <Input
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search subscriptions..."
-                    className="pl-10"
+                    className="pl-10 bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Category</label>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                    <SelectItem value="productivity">Productivity</SelectItem>
-                    <SelectItem value="cloud-storage">Cloud Storage</SelectItem>
-                    <SelectItem value="software">Software</SelectItem>
-                    <SelectItem value="fitness">Fitness</SelectItem>
-                    <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="all">All Categories</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="entertainment">Entertainment</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="productivity">Productivity</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="cloud-storage">Cloud Storage</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="software">Software</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="fitness">Fitness</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="education">Education</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Status</label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="due-soon">Due Soon</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="all">All Status</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="active">Active</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="due-soon">Due Soon</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="overdue">Overdue</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Sort By</label>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="nextRenewalDate">Next Due Date</SelectItem>
-                    <SelectItem value="amount-high">Amount (High to Low)</SelectItem>
-                    <SelectItem value="amount-low">Amount (Low to High)</SelectItem>
-                    <SelectItem value="name">Name (A-Z)</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="nextRenewalDate">Next Due Date</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="amount-high">Amount (High to Low)</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="amount-low">Amount (Low to High)</SelectItem>
+                    <SelectItem className="text-gray-900 dark:text-gray-100" value="name">Name (A-Z)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -188,7 +188,7 @@ export default function SubscriptionsPage() {
           <div className="text-center py-12">
             <CreditCard className="h-16 w-16 mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No subscriptions found</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               {searchTerm || categoryFilter ? 
                 "Try adjusting your filters or search terms." :
                 "Get started by adding your first subscription."

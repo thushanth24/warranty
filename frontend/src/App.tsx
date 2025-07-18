@@ -12,6 +12,7 @@ import WarrantiesPage from "@/pages/warranties";
 import EnhancedWarrantiesPage from "@/pages/enhanced-warranties";
 import RemindersPage from "@/pages/reminders";
 import ProfilePage from "@/pages/profile";
+import SettingsPage from "@/pages/settings";
 import ProfileSetupPage from "@/pages/profile-setup";
 import MainLayout from "@/components/layout/main-layout";
 import NotFound from "@/pages/not-found";
@@ -33,6 +34,7 @@ function AuthenticatedApp() {
         <Route path="/enhanced-warranties" component={EnhancedWarrantiesPage} />
         <Route path="/reminders" component={RemindersPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

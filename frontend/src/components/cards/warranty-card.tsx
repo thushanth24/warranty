@@ -35,7 +35,7 @@ const getProductIcon = (productName: string) => {
   if (lowerName.includes('watch') || lowerName.includes('fitbit')) {
     return <Watch className="text-orange-600" />;
   }
-  return <Laptop className="text-gray-600" />;
+  return <Laptop className="text-gray-600 dark:text-gray-300" />;
 };
 
 export default function WarrantyCard({ warranty, onEdit }: WarrantyCardProps) {
@@ -88,16 +88,16 @@ export default function WarrantyCard({ warranty, onEdit }: WarrantyCardProps) {
   });
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
+    <Card className="hover:shadow-md transition-shadow bg-white dark:bg-gray-800 border-0 dark:shadow-lg">
+      <CardContent className="p-6 text-gray-900 dark:text-gray-100">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="h-12 w-12 bg-gray-100 rounded-xl flex items-center justify-center text-xl">
+            <div className="h-12 w-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-xl">
               {getProductIcon(warranty.productName)}
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">{warranty.productName}</h3>
-              <p className="text-sm text-gray-600">{warranty.vendor}</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{warranty.productName}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{warranty.vendor}</p>
             </div>
           </div>
           <div className="flex space-x-2">
@@ -121,32 +121,38 @@ export default function WarrantyCard({ warranty, onEdit }: WarrantyCardProps) {
 
         <div className="space-y-3">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Purchase Date</span>
-            <span className="font-medium text-gray-900">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Purchase Date</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">
               {formatDate(warranty.purchaseDate)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Warranty Period</span>
-            <span className="font-medium text-gray-900">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Warranty Period</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">
               {warranty.warrantyDuration} {warranty.warrantyDuration === 1 ? 'Month' : 'Months'}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Expires</span>
-            <span className="font-medium text-gray-900">
-              {formatDate(warranty.expirationDate)}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Status</span>
-            <Badge className={urgencyColor}>
-              {status}
-            </Badge>
-          </div>
+  <span className="text-sm text-gray-600 dark:text-gray-300">Expires</span>
+  <span className={`font-semibold ${daysUntil < 0 ? 'text-red-600 dark:text-red-400' : daysUntil < 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+    {formatDate(warranty.expirationDate)}
+  </span>
+</div>
+          <div className="flex justify-between">
+  <span className="text-sm text-gray-600 dark:text-gray-300">Days left</span>
+  <span className={`font-semibold ${daysUntil < 0 ? 'text-red-600 dark:text-red-400' : daysUntil < 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+    {daysUntil} days
+  </span>
+</div>
+<div className="flex justify-between items-center">
+  <span className="text-sm text-gray-600 dark:text-gray-300">Status</span>
+  <Badge className={urgencyColor}>
+    {status}
+  </Badge>
+</div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
           <Button 
             variant="outline" 
             className="w-full"

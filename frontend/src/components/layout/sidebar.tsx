@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
+import { Settings as SettingsIcon } from "lucide-react";
+
 const navigationItems = [
   {
     name: "Dashboard",
@@ -45,6 +47,11 @@ const navigationItems = [
     name: "Profile",
     href: "/profile",
     icon: User,
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: SettingsIcon,
   },
 ];
 
@@ -129,9 +136,7 @@ export default function Sidebar() {
                 </p>
               )}
             </div>
-            <div className="flex gap-2 mb-3">
-              <ThemeToggle />
-            </div>
+            
             <Button
               variant="outline"
               onClick={handleLogout}

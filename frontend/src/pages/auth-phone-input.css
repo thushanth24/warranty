@@ -1,0 +1,95 @@
+@import 'react-phone-input-2/lib/style.css';
+
+/* Optionally, add custom overrides here */
+
+@media (max-width: 600px) {
+  .react-tel-input .form-control, .react-tel-input .flag-dropdown {
+    min-height: 3rem !important;
+    font-size: 1.05rem !important;
+    padding-left: 2.5rem !important;
+    border-radius: 0.75rem !important;
+  }
+  .react-tel-input .form-control {
+    padding-right: 1.5rem !important;
+  }
+  .react-tel-input .flag-dropdown {
+    min-width: 3rem !important;
+  }
+}
+
+/* Button tap targets */
+button, .react-tel-input .selected-flag {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* Shake animation */
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-8px); }
+  40%, 60% { transform: translateX(8px); }
+}
+.shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Force phone input full width */
+.react-tel-input {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.react-tel-input .form-control {
+  width: 100% !important;
+}
+.react-tel-input .flag-dropdown {
+  height: 100% !important;
+  min-height: 3rem !important;
+  max-height: 3rem !important;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  margin: 0 !important;
+  border-radius: 0.5rem 0 0 0.5rem !important;
+  border-right: none !important;
+  background: #f3f4f6 !important;
+}
+
+.react-tel-input .selected-flag {
+  height: 100% !important;
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+}
+
+/* Color contrast improvements */
+.react-tel-input .form-control, .react-tel-input .flag-dropdown {
+  color: #222 !important;
+  background: #fff !important;
+}
+.react-tel-input .form-control:disabled {
+  background: #f3f4f6 !important;
+  color: #a1a1aa !important;
+}
+.react-tel-input .country-list .country {
+  color: #222 !important;
+  background: #fff !important;
+}
+.react-tel-input .country-list .country.highlight {
+  background: #e0e7ff !important;
+  color: #1e293b !important;
+}
+
+/* Focus state for accessibility */
+.react-tel-input .form-control:focus, .react-tel-input .flag-dropdown:focus, .react-tel-input .selected-flag:focus {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px;
+  border-color: #2563eb !important;
+}
+
+/* Spacing for readability */
+.react-tel-input .form-control {
+  margin-bottom: 0.5rem !important;
+}
