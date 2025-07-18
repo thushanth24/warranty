@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import DatePickerField from './DatePickerField';
 
 export interface ReminderFormValues {
   title: string;
@@ -19,6 +20,7 @@ interface Props {
 export default function ReminderFormModal({ visible, onClose, onSubmit, initialValues, isEditing }: Props) {
   const [title, setTitle] = useState(initialValues?.title || '');
   const [dueDate, setDueDate] = useState(initialValues?.dueDate || '');
+// Use DatePickerField for dueDate
   const [itemType, setItemType] = useState(initialValues?.itemType || 'warranty');
   const [isActive, setIsActive] = useState(initialValues?.isActive ?? true);
 
@@ -41,6 +43,20 @@ export default function ReminderFormModal({ visible, onClose, onSubmit, initialV
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' }}>
         <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 14, width: '90%' }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>{isEditing ? 'Edit Reminder' : 'Add Reminder'}</Text>
+
+          <Text style={{ marginBottom: 4 }}>Title</Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Reminder Title"
+            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8 }}
+          />
+
+          <DatePickerField
+            value={dueDate}
+            onChange={setDueDate}
+            label="Due Date"
+          />
           <Text style={{ marginBottom: 4 }}>Title</Text>
           <TextInput
             value={title}

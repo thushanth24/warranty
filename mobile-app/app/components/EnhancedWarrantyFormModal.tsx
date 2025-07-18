@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import DatePickerField from './DatePickerField';
 
 export interface EnhancedWarrantyFormValues {
   productName: string;
@@ -22,6 +23,8 @@ export default function EnhancedWarrantyFormModal({ visible, onClose, onSubmit, 
   const [provider, setProvider] = useState(initialValues?.provider || '');
   const [coverageDetails, setCoverageDetails] = useState(initialValues?.coverageDetails || '');
   const [expirationDate, setExpirationDate] = useState(initialValues?.expirationDate || '');
+
+  // Add DatePickerField for expirationDate
   const [status, setStatus] = useState(initialValues?.status || 'active');
 
   useEffect(() => {

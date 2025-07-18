@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
+import DatePickerField from './DatePickerField';
 
 export interface WarrantyFormValues {
   productName: string;
@@ -20,6 +21,9 @@ export default function WarrantyFormModal({ visible, onClose, onSubmit, initialV
   const [expirationDate, setExpirationDate] = useState(initialValues?.expirationDate || '');
   const [status, setStatus] = useState(initialValues?.status || 'active');
 
+  // Import DatePickerField at the top
+  // import DatePickerField from './DatePickerField';
+
   useEffect(() => {
     if (visible) {
       setProductName(initialValues?.productName || '');
@@ -38,6 +42,20 @@ export default function WarrantyFormModal({ visible, onClose, onSubmit, initialV
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' }}>
         <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 14, width: '90%' }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>{isEditing ? 'Edit Warranty' : 'Add Warranty'}</Text>
+
+          <Text style={{ marginBottom: 4 }}>Product Name</Text>
+          <TextInput
+            value={productName}
+            onChangeText={setProductName}
+            placeholder="Product Name"
+            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8 }}
+          />
+
+          <DatePickerField
+            value={expirationDate}
+            onChange={setExpirationDate}
+            label="Expiration Date"
+          />
           <Text style={{ marginBottom: 4 }}>Product Name</Text>
           <TextInput
             value={productName}

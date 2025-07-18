@@ -18,8 +18,8 @@ export default function ProfileSetupScreen() {
 
   async function handleProfileSubmit(values: any) {
     try {
-      const res = await axios.put(`${BACKEND_URL}/api/users/${user.id}/profile`, values);
-      login({ ...user, ...values, profileCompleted: true });
+      const res = await axios.put(`${BACKEND_URL}/api/users/${user!.id}/profile`, values);
+      login({ ...user!, ...values, profileCompleted: true });
       setModalVisible(false);
       router.replace('/dashboard');
     } catch (e) {

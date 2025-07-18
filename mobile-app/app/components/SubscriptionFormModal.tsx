@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import DatePickerField from './DatePickerField';
 
 export interface SubscriptionFormValues {
   name: string;
@@ -20,6 +21,7 @@ interface Props {
 export default function SubscriptionFormModal({ visible, onClose, onSubmit, initialValues, isEditing }: Props) {
   const [name, setName] = useState(initialValues?.name || '');
   const [nextRenewalDate, setNextRenewalDate] = useState(initialValues?.nextRenewalDate || '');
+// Use DatePickerField for nextRenewalDate
   const [amount, setAmount] = useState(initialValues?.amount || '');
   const [category, setCategory] = useState(initialValues?.category || '');
   const [status, setStatus] = useState(initialValues?.status || 'active');
@@ -44,6 +46,20 @@ export default function SubscriptionFormModal({ visible, onClose, onSubmit, init
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' }}>
         <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 14, width: '90%' }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>{isEditing ? 'Edit Subscription' : 'Add Subscription'}</Text>
+
+          <Text style={{ marginBottom: 4 }}>Name</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Subscription Name"
+            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8 }}
+          />
+
+          <DatePickerField
+            value={nextRenewalDate}
+            onChange={setNextRenewalDate}
+            label="Next Renewal Date"
+          />
           <Text style={{ marginBottom: 4 }}>Name</Text>
           <TextInput
             value={name}

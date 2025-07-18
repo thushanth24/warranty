@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
 import DatePickerField from './DatePickerField';
-import type { UserProfile } from '../../hooks/useProfile';
+import type { User } from '../../types/types';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (values: Partial<UserProfile>) => void;
-  initialValues?: UserProfile;
+  onSubmit: (values: Partial<User>) => void;
+  initialValues?: User;
 }
 
 export default function ProfileFormModal({ visible, onClose, onSubmit, initialValues }: Props) {

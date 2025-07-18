@@ -1,38 +1,46 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MoreActionSheet from '../components/MoreActionSheet';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+  const [showMore, setShowMore] = useState(false);
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarStyle: {
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 6,
-          borderTopWidth: 0.5,
-          borderTopColor: '#eee',
-          backgroundColor: '#fff',
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          marginBottom: 4,
-        },
-        tabBarIconStyle: {
-          marginBottom: -2,
-        },
-      }}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={["top", "bottom"]}>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          headerShown: false,
+          tabBarStyle: {
+            height: 72,
+            paddingBottom: 18,
+            paddingTop: 10,
+            borderTopWidth: 0.5,
+            borderTopColor: '#eee',
+            backgroundColor: '#fff',
+          },
+          tabBarLabelStyle: {
+            fontSize: 14,
+            marginBottom: 2,
+            flexWrap: 'nowrap',
+            width: 90,
+            textAlign: 'center',
+          },
+          tabBarIconStyle: {
+            marginBottom: -2,
+          },
+        }}
+      >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
+          title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
         }}
       />
@@ -51,19 +59,27 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="reminders"
+        name="more"
         options={{
-          title: 'Reminders',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="bell.fill" color={color} />,
+          title: 'More',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="ellipsis.circle.fill" color={color} />,
         }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} />,
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            setShowMore(true);
+          }
         }}
       />
     </Tabs>
+    <MoreActionSheet
+      visible={showMore}
+      onClose={() => setShowMore(false)}
+      onNavigate={route => {
+        setShowMore(false);
+        router.push(route as any);
+      }}
+    />
+    </SafeAreaView>
   );
 }
