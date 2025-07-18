@@ -1,10 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, Modal, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
 import OtpInput from './components/OtpInput';
 import CountryCodePicker from './components/CountryCodePicker';
 import { BACKEND_URL } from '../config/config';
+import styles from './auth.styles';
+
+// You may want to replace this with your actual logo
+const logo = { uri: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=facearea&w=96&h=96' };
 
 export default function AuthScreen() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -105,71 +110,101 @@ export default function AuthScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 24, color: '#222' }}>Sign In</Text>
-      <View style={{ width: 300, maxWidth: '90%' }}>
-        {step === 'phone' ? (
-          <>
-            <Text style={{ marginBottom: 4, color: '#222' }}>Phone Number</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              <TouchableOpacity
-                style={{ borderWidth: 1, borderColor: '#2563eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8, marginRight: 8, backgroundColor: '#e8f0fe' }}
-                onPress={() => setShowCountryModal(true)}
-              >
-                <Text style={{ color: '#2563eb', fontWeight: 'bold', fontSize: 16 }}>{countryCode}</Text>
-              </TouchableOpacity>
-              <TextInput
-                style={{ flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, color: '#222', backgroundColor: '#fff' }}
-                placeholder="Enter your phone number"
-                placeholderTextColor="#888"
-                keyboardType="phone-pad"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                maxLength={12}
-              />
+    <LinearGradient
+      colors={["#dbeafe", "#f8fafc", "#ede9fe"]}
+      style={styles.background}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={40}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.container}>
+            {/* Logo and Header */}
+            <View style={styles.headerWrap}>
+              <View style={styles.logoWrap}>
+                <Image source={logo} style={styles.logo} />
+              </View>
+              <Text style={styles.title}>SubTracker Pro</Text>
+              <Text style={styles.subtitle}>Easily track all your subscriptions and product warranties in one place.</Text>
             </View>
-            <CountryCodePicker
-              visible={showCountryModal}
-              onSelect={setCountryCode}
-              onClose={() => setShowCountryModal(false)}
-            />
-            {error ? (
-              <Text style={{ marginBottom: 8, color: 'red', textAlign: 'center' }}>{error}</Text>
-            ) : null}
-            <TouchableOpacity
-              style={{ backgroundColor: '#2563eb', borderRadius: 6, paddingVertical: 12, marginTop: 4, alignItems: 'center', opacity: loading ? 0.7 : 1 }}
-              onPress={handleSendOtp}
-              disabled={loading}
-            >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Send OTP</Text>}
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <Text style={{ marginBottom: 4, color: '#222' }}>Enter OTP</Text>
-            <OtpInput values={otpValues} onChange={handleOtpChange} length={6} />
-            {error ? (
-              <Text style={{ marginBottom: 8, color: 'red', textAlign: 'center' }}>{error}</Text>
-            ) : null}
-            <TouchableOpacity
-              style={{ backgroundColor: '#2563eb', borderRadius: 6, paddingVertical: 12, marginTop: 12, alignItems: 'center', opacity: loading ? 0.7 : 1 }}
-              onPress={handleVerifyOtp}
-              disabled={loading}
-            >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Verify OTP</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ marginTop: 16, alignItems: 'center' }}
-              onPress={handleResendOtp}
-              disabled={countdown > 0}
-            >
-              <Text style={{ color: countdown > 0 ? '#888' : '#2563eb', fontWeight: 'bold' }}>
-                {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP'}
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </View>
+
+            {/* Card */}
+            <View style={styles.card}>
+              {step === 'phone' ? (
+                <>
+                  <Text style={styles.formTitle}>Sign in with your phone</Text>
+                  <Text style={styles.formSubtitle}>Get instant access to your subscription and warranty tracking dashboard.</Text>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Phone Number</Text>
+                    <View style={styles.phoneRow}>
+                      <TouchableOpacity
+                        style={styles.countryBtn}
+                        onPress={() => setShowCountryModal(true)}
+                      >
+                        <Text style={styles.countryText}>{countryCode}</Text>
+                      </TouchableOpacity>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your phone number"
+                        placeholderTextColor="#888"
+                        keyboardType="phone-pad"
+                        value={phoneNumber}
+                        onChangeText={setPhoneNumber}
+                        maxLength={12}
+                        returnKeyType="done"
+                        blurOnSubmit={true}
+                        onSubmitEditing={Keyboard.dismiss}
+                      />
+                    </View>
+                    <CountryCodePicker
+                      visible={showCountryModal}
+                      onSelect={setCountryCode}
+                      onClose={() => setShowCountryModal(false)}
+                    />
+                  </View>
+                  {error ? (
+                    <Text style={styles.error}>{error}</Text>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.button, loading && styles.buttonDisabled]}
+                    onPress={handleSendOtp}
+                    disabled={loading}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send OTP</Text>}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.formTitle}>Enter OTP</Text>
+                  <OtpInput values={otpValues} onChange={handleOtpChange} length={6} />
+                  {error ? (
+                    <Text style={styles.error}>{error}</Text>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.button, loading && styles.buttonDisabled]}
+                    onPress={handleVerifyOtp}
+                    disabled={loading}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify OTP</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.resendBtn}
+                    onPress={handleResendOtp}
+                    disabled={countdown > 0}
+                  >
+                    <Text style={[styles.resendText, countdown > 0 && styles.resendDisabled]}>
+                      {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+      {/* Modal for feedback if needed in future */}
+    </LinearGradient>
   );
 }
