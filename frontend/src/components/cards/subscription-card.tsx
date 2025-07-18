@@ -24,18 +24,18 @@ const getServiceIcon = (name: string) => {
   if (lowerName.includes('apple') || lowerName.includes('icloud')) return <FaApple className="text-gray-800" />;
   if (lowerName.includes('google') || lowerName.includes('drive')) return <FaGoogle className="text-blue-500" />;
   if (lowerName.includes('microsoft') || lowerName.includes('office')) return <FaMicrosoft className="text-blue-600" />;
-  return <CreditCard className="text-gray-600" />;
+  return <CreditCard className="text-gray-600 dark:text-gray-300" />;
 };
 
 const getCategoryColor = (category?: string) => {
   switch (category) {
-    case 'entertainment': return 'bg-purple-100 text-purple-800';
-    case 'productivity': return 'bg-blue-100 text-blue-800';
-    case 'cloud-storage': return 'bg-cyan-100 text-cyan-800';
-    case 'software': return 'bg-gray-100 text-gray-800';
-    case 'fitness': return 'bg-green-100 text-green-800';
-    case 'education': return 'bg-orange-100 text-orange-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'entertainment': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+    case 'productivity': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+    case 'cloud-storage': return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
+    case 'software': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+    case 'fitness': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    case 'education': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
   }
 };
 
@@ -102,15 +102,15 @@ export default function SubscriptionCard({ subscription, onEdit }: SubscriptionC
   });
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
+    <Card className="hover:shadow-md transition-shadow bg-white dark:bg-gray-800 border-0 dark:shadow-lg">
+      <CardContent className="p-6 text-gray-900 dark:text-gray-100">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className="h-12 w-12 rounded-xl flex items-center justify-center text-xl">
               {getServiceIcon(subscription.name)}
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">{subscription.name}</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{subscription.name}</h3>
               {subscription.category && (
                 <Badge variant="secondary" className={getCategoryColor(subscription.category)}>
                   {subscription.category.replace('-', ' ')}
@@ -139,26 +139,26 @@ export default function SubscriptionCard({ subscription, onEdit }: SubscriptionC
 
         <div className="space-y-3">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Amount</span>
-            <span className="font-semibold text-gray-900">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Amount</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
               {formatCurrency(subscription.amount)}/{subscription.billingCycle}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Next Due</span>
-            <span className="font-medium text-gray-900">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Next Due</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">
               {formatDate(subscription.nextRenewalDate)}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Status</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">Status</span>
             <Badge className={urgencyColor}>
               {status}
             </Badge>
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
           <Button 
             variant="outline" 
             className="w-full"

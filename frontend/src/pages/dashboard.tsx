@@ -19,12 +19,24 @@ export default function DashboardPage() {
   const [showSubscriptionForm, setShowSubscriptionForm] = useState(false);
   const [showWarrantyForm, setShowWarrantyForm] = useState(false);
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  interface DashboardStats {
+  activeSubscriptions: number;
+  monthlySpend: number;
+  activeWarranties: number;
+  dueThisWeek: number;
+}
+
+interface UpcomingData {
+  upcomingRenewals: any[];
+  warrantyExpirations: any[];
+}
+
+const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats", user?.id],
     enabled: !!user?.id,
   });
 
-  const { data: upcoming, isLoading: upcomingLoading } = useQuery({
+  const { data: upcoming, isLoading: upcomingLoading } = useQuery<UpcomingData>({
     queryKey: ["/api/dashboard/upcoming", user?.id],
     enabled: !!user?.id,
   });
@@ -34,11 +46,11 @@ export default function DashboardPage() {
     if (lowerName.includes('netflix')) return <CreditCard className="text-red-600 text-lg" />;
     if (lowerName.includes('spotify')) return <FaSpotify className="text-green-600 text-lg" />;
     if (lowerName.includes('dropbox')) return <FaDropbox className="text-blue-600 text-lg" />;
-    return <CreditCard className="text-gray-600 text-lg" />;
+    return <CreditCard className="text-gray-600 dark:text-gray-300 text-lg" />;
   };
 
   return (
-    <main className="p-6">
+    <main className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -46,20 +58,20 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Subscriptions</p>
                   {statsLoading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-3xl font-bold text-gray-900">{stats?.activeSubscriptions || 0}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats?.activeSubscriptions || 0}</p>
                   )}
                 </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <CreditCard className="text-primary text-xl" />
+                <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center">
+                  <CreditCard className="text-primary dark:text-blue-400 text-xl" />
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <span className="text-success font-medium">+0</span>
-                <span className="text-gray-600 ml-1">from last month</span>
+                <span className="text-success dark:text-green-400 font-medium">+0</span>
+                <span className="text-gray-600 dark:text-gray-300 ml-1">from last month</span>
               </div>
             </CardContent>
           </Card>
@@ -68,22 +80,22 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Monthly Spend</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Monthly Spend</p>
                   {statsLoading ? (
                     <Skeleton className="h-8 w-24 mt-1" />
                   ) : (
-                    <p className="text-3xl font-bold text-gray-900">
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                       {formatCurrency(stats?.monthlySpend || 0)}
                     </p>
                   )}
                 </div>
-                <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <DollarSign className="text-success text-xl" />
+                <div className="h-12 w-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center">
+                  <DollarSign className="text-success dark:text-green-400 text-xl" />
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <span className="text-success font-medium">$0.00</span>
-                <span className="text-gray-600 ml-1">from last month</span>
+                <span className="text-success dark:text-green-400 font-medium">$0.00</span>
+                <span className="text-gray-600 dark:text-gray-300 ml-1">from last month</span>
               </div>
             </CardContent>
           </Card>
@@ -92,20 +104,20 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Warranties Tracked</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Warranties Tracked</p>
                   {statsLoading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-3xl font-bold text-gray-900">{stats?.activeWarranties || 0}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats?.activeWarranties || 0}</p>
                   )}
                 </div>
-                <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center">
                   <Shield className="text-purple-600 text-xl" />
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <span className="text-warning font-medium">0</span>
-                <span className="text-gray-600 ml-1">expiring soon</span>
+                <span className="text-warning dark:text-yellow-400 font-medium">0</span>
+                <span className="text-gray-600 dark:text-gray-300 ml-1">expiring soon</span>
               </div>
             </CardContent>
           </Card>
@@ -114,20 +126,20 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Due This Week</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Due This Week</p>
                   {statsLoading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-3xl font-bold text-gray-900">{stats?.dueThisWeek || 0}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats?.dueThisWeek || 0}</p>
                   )}
                 </div>
-                <div className="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                  <Clock className="text-warning text-xl" />
+                <div className="h-12 w-12 bg-orange-100 dark:bg-orange-900 rounded-xl flex items-center justify-center">
+                  <Clock className="text-warning dark:text-yellow-400 text-xl" />
                 </div>
               </div>
               <div className="mt-4 flex items-center text-sm">
-                <span className="text-danger font-medium">0</span>
-                <span className="text-gray-600 ml-1">overdue</span>
+                <span className="text-danger dark:text-red-400 font-medium">0</span>
+                <span className="text-gray-600 dark:text-gray-300 ml-1">overdue</span>
               </div>
             </CardContent>
           </Card>
@@ -136,32 +148,32 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <Card>
           <CardContent className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button 
                 onClick={() => setShowSubscriptionForm(true)}
-                className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-blue-50 transition-colors"
+                className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-500 hover:border-primary hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
               >
-                <Plus className="text-primary text-2xl mb-2" />
-                <span className="text-sm font-medium text-gray-700">Add Subscription</span>
+                <Plus className="text-primary dark:text-blue-400 text-2xl mb-2" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Add Subscription</span>
               </button>
               <button 
                 onClick={() => setShowWarrantyForm(true)}
-                className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-blue-50 transition-colors"
+                className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-500 hover:border-primary hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
               >
-                <Shield className="text-primary text-2xl mb-2" />
-                <span className="text-sm font-medium text-gray-700">Add Warranty</span>
+                <Shield className="text-primary dark:text-blue-400 text-2xl mb-2" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Add Warranty</span>
               </button>
               <button 
                 onClick={() => setLocation("/reminders")}
-                className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-blue-50 transition-colors"
+                className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-500 hover:border-primary hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
               >
-                <Bell className="text-primary text-2xl mb-2" />
-                <span className="text-sm font-medium text-gray-700">Set Reminder</span>
+                <Bell className="text-primary dark:text-blue-400 text-2xl mb-2" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Set Reminder</span>
               </button>
-              <button className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-blue-50 transition-colors">
-                <Download className="text-primary text-2xl mb-2" />
-                <span className="text-sm font-medium text-gray-700">Export Data</span>
+              <button className="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-500 hover:border-primary hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors">
+                <Download className="text-primary dark:text-blue-400 text-2xl mb-2" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Export Data</span>
               </button>
             </div>
           </CardContent>
@@ -173,7 +185,7 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Upcoming Renewals</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Upcoming Renewals</h2>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -206,14 +218,14 @@ export default function DashboardPage() {
                     const status = getUrgencyStatus(daysUntil);
                     
                     return (
-                      <div key={renewal.id} className={`flex items-center justify-between p-4 rounded-lg border ${urgencyColor.includes('red') ? 'border-red-200 bg-red-50' : urgencyColor.includes('orange') ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}`}>
+                      <div key={renewal.id} className={`flex items-center justify-between p-4 rounded-lg border ${urgencyColor.includes('red') ? 'border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900/40' : urgencyColor.includes('orange') ? 'border-orange-200 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/40' : 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/40'}`}>
                         <div className="flex items-center space-x-3">
                           <div className="h-10 w-10 rounded-lg flex items-center justify-center">
                             {getServiceIcon(renewal.name)}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{renewal.name}</p>
-                            <p className="text-sm text-gray-600">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">{renewal.name}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
                               {daysUntil < 0 ? `Overdue by ${Math.abs(daysUntil)} days` : 
                                daysUntil === 0 ? 'Due today' :
                                `Due in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`}
@@ -221,7 +233,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-gray-900">{formatCurrency(renewal.amount)}</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(renewal.amount)}</p>
                           <Badge className={urgencyColor}>
                             {status}
                           </Badge>
@@ -243,7 +255,7 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Warranty Expirations</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Warranty Expirations</h2>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -276,14 +288,14 @@ export default function DashboardPage() {
                     const status = getUrgencyStatus(daysUntil);
                     
                     return (
-                      <div key={warranty.id} className={`flex items-center justify-between p-4 rounded-lg border ${urgencyColor.includes('red') ? 'border-red-200 bg-red-50' : urgencyColor.includes('orange') ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}`}>
+                      <div key={warranty.id} className={`flex items-center justify-between p-4 rounded-lg border ${urgencyColor.includes('red') ? 'border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900/40' : urgencyColor.includes('orange') ? 'border-orange-200 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/40' : 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/40'}`}>
                         <div className="flex items-center space-x-3">
                           <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <Shield className="text-gray-600 text-lg" />
+                            <Shield className="text-gray-600 dark:text-gray-300 text-lg" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{warranty.productName}</p>
-                            <p className="text-sm text-gray-600">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">{warranty.productName}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
                               {daysUntil < 0 ? `Expired ${Math.abs(daysUntil)} days ago` : 
                                daysUntil === 0 ? 'Expires today' :
                                `Expires in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`}
@@ -291,7 +303,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-600">{warranty.vendor}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{warranty.vendor}</p>
                           <Badge className={urgencyColor}>
                             {status}
                           </Badge>
