@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, ActivityIndicator, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ActivityIndicator, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useSubscriptions } from '../../hooks/useSubscriptions';
 import SubscriptionFormModal, { SubscriptionFormValues } from '../components/SubscriptionFormModal';
 import axios from 'axios';
 import { BACKEND_URL } from '../../config/config';
 import { useAuth } from '../../hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
+import type { Subscription } from '../../types/types';
 
 export default function SubscriptionsScreen() {
-  const { data: subscriptions, isLoading, error } = useSubscriptions();
+  const { data: subscriptions, isLoading, error, refetch, isFetching } = useSubscriptions();
+  const typedSubscriptions = subscriptions as Subscription[] | undefined;
   const [modalVisible, setModalVisible] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<any | null>(null);
   const queryClient = useQueryClient();
@@ -23,10 +25,11 @@ export default function SubscriptionsScreen() {
     try {
       const payload = {
         ...values,
-        amount: values.amount ? parseFloat(values.amount) : undefined,
+        amount: values.amount !== undefined && values.amount !== null ? String(values.amount) : undefined,
       };
+
       if (editingSubscription) {
-        await axios.put(`${BACKEND_URL}/api/subscriptions/${editingSubscription.id}`, payload);
+        await axios.put(`${BACKEND_URL}/api/subscriptions/${safeUser.id}/${editingSubscription.id}`, payload);
       } else {
         await axios.post(`${BACKEND_URL}/api/subscriptions/${safeUser.id}`, payload);
       }
@@ -50,7 +53,17 @@ export default function SubscriptionsScreen() {
 
   return (
     <>
-      <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} contentContainerStyle={{ padding: 20 }}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: '#fff' }}
+        contentContainerStyle={{ padding: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={refetch}
+            colors={['#2563eb']}
+          />
+        }
+      >
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#222', marginBottom: 16 }}>Subscriptions</Text>
         <TouchableOpacity
           style={{ backgroundColor: '#2563eb', padding: 12, borderRadius: 8, marginBottom: 20, alignSelf: 'flex-start' }}
@@ -89,14 +102,8 @@ export default function SubscriptionsScreen() {
                 );
               })()}
 
-              {/* Debug: Show raw subscription object */}
-              <Text style={{ color: '#888', marginTop: 2, fontSize: 12 }}>
-                [Debug] sub: {JSON.stringify(sub)}
-              </Text>
-              {/* Debug: Show raw amount and type */}
-              <Text style={{ color: '#888', marginTop: 2, fontSize: 12 }}>
-                [Debug] Amount: {String(sub.amount)} (type: {typeof sub.amount})
-              </Text>
+
+
               {typeof sub.amount === 'number' && !isNaN(sub.amount) ? (
                 <Text style={{ color: '#222', marginTop: 2 }}>Amount: ${sub.amount.toFixed(2)}</Text>
               ) : typeof sub.amount === 'string' && sub.amount !== undefined && sub.amount !== null && (sub.amount as string).trim() !== '' && !isNaN(Number(sub.amount)) ? (
@@ -108,6 +115,37 @@ export default function SubscriptionsScreen() {
                 <Text style={{ color: '#888', marginTop: 2 }}>Category: {sub.category}</Text>
               )}
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#22c55e', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, marginRight: 8 }}
+                  onPress={async () => {
+                    // Calculate new nextRenewalDate
+                    let nextDate = new Date(sub.nextRenewalDate);
+                    switch (sub.billingCycle) {
+                      case 'weekly':
+                        nextDate.setDate(nextDate.getDate() + 7);
+                        break;
+                      case 'monthly':
+                        nextDate.setMonth(nextDate.getMonth() + 1);
+                        break;
+                      case 'quarterly':
+                        nextDate.setMonth(nextDate.getMonth() + 3);
+                        break;
+                      case 'yearly':
+                        nextDate.setFullYear(nextDate.getFullYear() + 1);
+                        break;
+                    }
+                    try {
+                      await axios.put(`${BACKEND_URL}/api/subscriptions/${safeUser.id}/${sub.id}`, {
+                        nextRenewalDate: nextDate.toISOString().slice(0, 10), // Send as YYYY-MM-DD
+                      });
+                      queryClient.invalidateQueries({ queryKey: ['subscriptions', safeUser.id] });
+                    } catch (e) {
+                      Alert.alert('Error', 'Failed to mark as renewed.');
+                    }
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Mark as Renewed</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={{ backgroundColor: '#eab308', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, marginRight: 8 }}
                   onPress={() => openEditModal(sub)}
@@ -121,7 +159,7 @@ export default function SubscriptionsScreen() {
                       { text: 'Cancel', style: 'cancel' },
                       { text: 'Delete', style: 'destructive', onPress: async () => {
                         try {
-                          await axios.delete(`${BACKEND_URL}/api/subscriptions/${sub.id}`);
+                          await axios.delete(`${BACKEND_URL}/api/subscriptions/${safeUser.id}/${sub.id}`);
                           if (user?.id) {
                             queryClient.invalidateQueries({ queryKey: ['subscriptions', safeUser.id] });
                           }

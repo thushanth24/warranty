@@ -28,7 +28,7 @@ export interface Subscription {
   id: number;
   userId: number;
   name: string;
-  amount: string;
+  amount: string | number;
   billingCycle: string;
   category?: string | null;
   nextRenewalDate: string;

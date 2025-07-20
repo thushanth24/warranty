@@ -3,14 +3,7 @@ import axios from 'axios';
 import { BACKEND_URL } from '../config/config';
 import { useAuth } from './useAuth';
 
-export interface Subscription {
-  id: string;
-  name: string;
-  nextRenewalDate: string;
-  status: string;
-  amount?: number;
-  category?: string;
-}
+import type { Subscription } from '../types/types';
 
 export function useSubscriptions() {
   const { user } = useAuth();
