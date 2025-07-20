@@ -26,7 +26,7 @@ export default function WarrantiesScreen() {
         const purchaseDate = new Date(values.purchaseDate);
         const expirationDate = new Date(purchaseDate);
         expirationDate.setMonth(expirationDate.getMonth() + Number(values.warrantyDuration));
-        await axios.put(`${BACKEND_URL}/api/warranties/${editingWarranty.id}`, { ...values, expirationDate: expirationDate.toISOString(), userId: safeUser.id });
+        await axios.put(`${BACKEND_URL}/api/warranties/${safeUser.id}/${editingWarranty.id}`, { ...values, expirationDate: expirationDate.toISOString(), userId: safeUser.id });
       } else {
         // Compute expirationDate
         const purchaseDate = new Date(values.purchaseDate);
@@ -102,7 +102,7 @@ export default function WarrantiesScreen() {
                       { text: 'Cancel', style: 'cancel' },
                       { text: 'Delete', style: 'destructive', onPress: async () => {
                         try {
-                          await axios.delete(`${BACKEND_URL}/api/warranties/${warranty.id}`);
+                          await axios.delete(`${BACKEND_URL}/api/warranties/${safeUser.id}/${warranty.id}`);
                           if (user?.id) {
                             queryClient.invalidateQueries({ queryKey: ['warranties', safeUser.id] });
                           }
