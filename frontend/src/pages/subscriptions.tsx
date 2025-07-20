@@ -21,7 +21,7 @@ export default function SubscriptionsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [sortBy, setSortBy] = useState("nextRenewalDate");
 
-  const { data: subscriptions, isLoading } = useQuery({
+  const { data: subscriptions, isLoading } = useQuery<Subscription[]>({
     queryKey: ["/api/subscriptions", user?.id],
     enabled: !!user?.id,
   });
@@ -36,7 +36,7 @@ export default function SubscriptionsPage() {
     setEditingSubscription(undefined);
   };
 
-  const filteredSubscriptions = subscriptions?.filter((sub: Subscription) => {
+  const filteredSubscriptions = (subscriptions ?? []).filter((sub: Subscription) => {
     const matchesSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !categoryFilter || categoryFilter === "all" || sub.category === categoryFilter;
     // Add status filtering logic here if needed

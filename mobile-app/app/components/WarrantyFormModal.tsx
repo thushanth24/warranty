@@ -4,8 +4,10 @@ import DatePickerField from './DatePickerField';
 
 export interface WarrantyFormValues {
   productName: string;
-  expirationDate: string; // ISO string
-  status: string;
+  vendor: string;
+  purchaseDate: string; // ISO string (YYYY-MM-DD)
+  warrantyDuration: number; // months
+  description?: string;
 }
 
 interface Props {
@@ -18,8 +20,10 @@ interface Props {
 
 export default function WarrantyFormModal({ visible, onClose, onSubmit, initialValues, isEditing }: Props) {
   const [productName, setProductName] = useState(initialValues?.productName || '');
-  const [expirationDate, setExpirationDate] = useState(initialValues?.expirationDate || '');
-  const [status, setStatus] = useState(initialValues?.status || 'active');
+  const [vendor, setVendor] = useState(initialValues?.vendor || '');
+  const [purchaseDate, setPurchaseDate] = useState(initialValues?.purchaseDate || '');
+  const [warrantyDuration, setWarrantyDuration] = useState(initialValues?.warrantyDuration?.toString() || '12');
+  const [description, setDescription] = useState(initialValues?.description || '');
 
   // Import DatePickerField at the top
   // import DatePickerField from './DatePickerField';
@@ -27,14 +31,22 @@ export default function WarrantyFormModal({ visible, onClose, onSubmit, initialV
   useEffect(() => {
     if (visible) {
       setProductName(initialValues?.productName || '');
-      setExpirationDate(initialValues?.expirationDate || '');
-      setStatus(initialValues?.status || 'active');
+      setVendor(initialValues?.vendor || '');
+      setPurchaseDate(initialValues?.purchaseDate || '');
+      setWarrantyDuration(initialValues?.warrantyDuration?.toString() || '12');
+      setDescription(initialValues?.description || '');
     }
   }, [visible, initialValues]);
 
   function handleSubmit() {
-    if (!productName || !expirationDate) return;
-    onSubmit({ productName, expirationDate, status });
+    if (!productName.trim() || !vendor.trim() || !purchaseDate || !warrantyDuration) return;
+    onSubmit({
+      productName: productName.trim(),
+      vendor: vendor.trim(),
+      purchaseDate,
+      warrantyDuration: parseInt(warrantyDuration, 10),
+      description: description.trim() || undefined,
+    });
   }
 
   return (
@@ -43,40 +55,47 @@ export default function WarrantyFormModal({ visible, onClose, onSubmit, initialV
         <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 14, width: '90%' }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>{isEditing ? 'Edit Warranty' : 'Add Warranty'}</Text>
 
-          <Text style={{ marginBottom: 4 }}>Product Name</Text>
+          <Text style={{ marginBottom: 4 }}>Product Name *</Text>
           <TextInput
             value={productName}
             onChangeText={setProductName}
-            placeholder="Product Name"
+            placeholder="e.g., MacBook Pro 16, iPhone 14 Pro"
+            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8 }}
+          />
+
+          <Text style={{ marginBottom: 4 }}>Vendor/Manufacturer *</Text>
+          <TextInput
+            value={vendor}
+            onChangeText={setVendor}
+            placeholder="e.g., Apple, Samsung, Sony"
             style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8 }}
           />
 
           <DatePickerField
-            value={expirationDate}
-            onChange={setExpirationDate}
-            label="Expiration Date"
+            value={purchaseDate}
+            onChange={setPurchaseDate}
+            label="Purchase Date *"
           />
-          <Text style={{ marginBottom: 4 }}>Product Name</Text>
+
+          <Text style={{ marginBottom: 4 }}>Warranty Duration (Months) *</Text>
           <TextInput
-            value={productName}
-            onChangeText={setProductName}
-            placeholder="e.g. iPhone 15"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 12 }}
+            value={warrantyDuration}
+            onChangeText={setWarrantyDuration}
+            placeholder="12"
+            keyboardType="numeric"
+            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8 }}
           />
-          <Text style={{ marginBottom: 4 }}>Expiration Date</Text>
+
+          <Text style={{ marginBottom: 4 }}>Description (Optional)</Text>
           <TextInput
-            value={expirationDate}
-            onChangeText={setExpirationDate}
-            placeholder="YYYY-MM-DD"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 12 }}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Add any notes about this warranty..."
+            multiline
+            numberOfLines={3}
+            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8, textAlignVertical: 'top' }}
           />
-          <Text style={{ marginBottom: 4 }}>Status</Text>
-          <TextInput
-            value={status}
-            onChangeText={setStatus}
-            placeholder="active/expired/expiring"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 16 }}
-          />
+
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
             <TouchableOpacity onPress={onClose} style={{ marginRight: 16 }}>
               <Text style={{ color: '#888', fontWeight: 'bold' }}>Cancel</Text>

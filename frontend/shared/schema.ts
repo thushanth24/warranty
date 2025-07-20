@@ -40,6 +40,8 @@ export const subscriptions = pgTable("subscriptions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export type Subscription = typeof subscriptions.$inferSelect;
+
 export const warranties = pgTable("warranties", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -67,6 +69,8 @@ export const warranties = pgTable("warranties", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export type Warranty = typeof warranties.$inferSelect;
 
 export const reminders = pgTable("reminders", {
   id: serial("id").primaryKey(),

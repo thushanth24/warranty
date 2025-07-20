@@ -6,8 +6,9 @@ export interface SubscriptionFormValues {
   name: string;
   nextRenewalDate: string; // ISO string
   amount: string;
+  billingCycle: string;
   category: string;
-  status: string;
+  description?: string;
 }
 
 interface Props {
@@ -18,27 +19,31 @@ interface Props {
   isEditing?: boolean;
 }
 
+import RNPickerSelect from 'react-native-picker-select';
+
+
 export default function SubscriptionFormModal({ visible, onClose, onSubmit, initialValues, isEditing }: Props) {
   const [name, setName] = useState(initialValues?.name || '');
   const [nextRenewalDate, setNextRenewalDate] = useState(initialValues?.nextRenewalDate || '');
-// Use DatePickerField for nextRenewalDate
   const [amount, setAmount] = useState(initialValues?.amount || '');
+  const [billingCycle, setBillingCycle] = useState(initialValues?.billingCycle || '');
   const [category, setCategory] = useState(initialValues?.category || '');
-  const [status, setStatus] = useState(initialValues?.status || 'active');
+  const [description, setDescription] = useState(initialValues?.description || '');
 
   useEffect(() => {
     if (visible) {
       setName(initialValues?.name || '');
       setNextRenewalDate(initialValues?.nextRenewalDate || '');
       setAmount(initialValues?.amount || '');
+      setBillingCycle(initialValues?.billingCycle || '');
       setCategory(initialValues?.category || '');
-      setStatus(initialValues?.status || 'active');
+      setDescription(initialValues?.description || '');
     }
   }, [visible, initialValues]);
 
   function handleSubmit() {
-    if (!name || !nextRenewalDate) return;
-    onSubmit({ name, nextRenewalDate, amount, category, status });
+    if (!name || !amount || !billingCycle || !nextRenewalDate) return;
+    onSubmit({ name, nextRenewalDate, amount: String(amount), billingCycle, category, description: description || undefined });
   }
 
   return (
@@ -47,54 +52,110 @@ export default function SubscriptionFormModal({ visible, onClose, onSubmit, init
         <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 14, width: '90%' }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>{isEditing ? 'Edit Subscription' : 'Add Subscription'}</Text>
 
-          <Text style={{ marginBottom: 4 }}>Name</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Subscription Name"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 16, padding: 8 }}
-          />
+          
 
-          <DatePickerField
-            value={nextRenewalDate}
-            onChange={setNextRenewalDate}
-            label="Next Renewal Date"
-          />
-          <Text style={{ marginBottom: 4 }}>Name</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g. Netflix"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 12 }}
-          />
-          <Text style={{ marginBottom: 4 }}>Next Renewal Date</Text>
-          <TextInput
-            value={nextRenewalDate}
-            onChangeText={setNextRenewalDate}
-            placeholder="YYYY-MM-DD"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 12 }}
-          />
-          <Text style={{ marginBottom: 4 }}>Amount</Text>
+          <Text style={{ marginBottom: 4 }}>Name *</Text>
+<TextInput
+  value={name}
+  onChangeText={setName}
+  placeholder="e.g. Netflix"
+  style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 12 }}
+/>
+          <Text style={{ marginBottom: 4 }}>Amount *</Text>
           <TextInput
             value={amount}
-            onChangeText={setAmount}
+            onChangeText={val => setAmount(val.toString())}
             placeholder="$9.99"
             keyboardType="decimal-pad"
             style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 12 }}
           />
+          <Text style={{ marginBottom: 4 }}>Billing Cycle *</Text>
+          <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, marginBottom: 12, backgroundColor: '#fafafa', paddingHorizontal: 8, paddingVertical: 2 }}>
+  <RNPickerSelect
+    value={billingCycle}
+    onValueChange={setBillingCycle}
+    placeholder={{ label: 'Select billing cycle', value: '', color: '#888' }}
+    items={[
+      { label: 'Weekly', value: 'weekly' },
+      { label: 'Monthly', value: 'monthly' },
+      { label: 'Quarterly', value: 'quarterly' },
+      { label: 'Yearly', value: 'yearly' },
+    ]}
+    style={{
+      inputIOS: { height: 40, padding: 8, color: '#222' },
+      inputAndroid: { height: 40, padding: 8, color: '#222' },
+      placeholder: { color: '#888' },
+      viewContainer: { minHeight: 40, justifyContent: 'center' },
+    }}
+    useNativeAndroidPickerStyle={false}
+    Icon={() => (
+      <View style={{ position: 'absolute', right: 10, top: 14 }}>
+        <Text style={{ fontSize: 18, color: '#888' }}>▼</Text>
+      </View>
+    )}
+  />
+</View>
           <Text style={{ marginBottom: 4 }}>Category</Text>
-          <TextInput
+          <RNPickerSelect
             value={category}
-            onChangeText={setCategory}
-            placeholder="e.g. Streaming"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 12 }}
+            onValueChange={setCategory}
+            placeholder={{ label: 'Select category...', value: '' }}
+            items={[
+              { label: 'Entertainment', value: 'entertainment' },
+              { label: 'Productivity', value: 'productivity' },
+              { label: 'Cloud Storage', value: 'cloud-storage' },
+              { label: 'Software', value: 'software' },
+              { label: 'Fitness', value: 'fitness' },
+              { label: 'Education', value: 'education' },
+              { label: 'Other', value: 'other' },
+            ]}
+            style={{
+              inputIOS: {
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 6,
+                padding: 12,
+                marginBottom: 16,
+                backgroundColor: '#f9f9f9',
+                color: '#333',
+              },
+              inputAndroid: {
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 6,
+                padding: 12,
+                marginBottom: 16,
+                backgroundColor: '#f9f9f9',
+                color: '#333',
+              },
+              placeholder: {
+                color: '#888',
+              },
+              iconContainer: {
+                top: 18,
+                right: 12,
+              },
+            }}
+            useNativeAndroidPickerStyle={false}
+            Icon={() => (
+              <View style={{ position: 'absolute', right: 16, top: 18 }}>
+                <Text style={{ fontSize: 18, color: '#888' }}>▼</Text>
+              </View>
+            )}
           />
-          <Text style={{ marginBottom: 4 }}>Status</Text>
+          <DatePickerField
+            value={nextRenewalDate}
+            onChange={setNextRenewalDate}
+            label="Next Renewal Date *"
+          />
+          <Text style={{ marginBottom: 4 }}>Description (Optional)</Text>
           <TextInput
-            value={status}
-            onChangeText={setStatus}
-            placeholder="active/overdue/cancelled"
-            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 16 }}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Add any notes about this subscription..."
+            multiline
+            numberOfLines={3}
+            style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 16, textAlignVertical: 'top' }}
           />
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
             <TouchableOpacity onPress={onClose} style={{ marginRight: 16 }}>

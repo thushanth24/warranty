@@ -23,3 +23,16 @@ export interface User {
   profileCompleted: boolean;
   dateOfBirth?: string;
 }
+
+export interface Subscription {
+  id: number;
+  userId: number;
+  name: string;
+  amount: string;
+  billingCycle: string;
+  category?: string | null;
+  nextRenewalDate: string;
+  description?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}

@@ -131,7 +131,7 @@ export default function ProfilePage() {
                   Date of Birth
                 </label>
                 <p className="text-gray-900 dark:text-white">
-                  {formatDate(user?.dateOfBirth)}
+                  {formatDate(user?.dateOfBirth ?? null)}
                 </p>
               </div>
 
@@ -140,7 +140,7 @@ export default function ProfilePage() {
                   Member Since
                 </label>
                 <p className="text-gray-900 dark:text-white">
-                  {formatDate(user?.createdAt)}
+                  {formatDate(user?.createdAt ?? null)}
                 </p>
               </div>
             </CardContent>

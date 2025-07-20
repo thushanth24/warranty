@@ -24,12 +24,11 @@ export default function SubscriptionsScreen() {
       const payload = {
         ...values,
         amount: values.amount ? parseFloat(values.amount) : undefined,
-        userId: safeUser.id,
       };
       if (editingSubscription) {
         await axios.put(`${BACKEND_URL}/api/subscriptions/${editingSubscription.id}`, payload);
       } else {
-        await axios.post(`${BACKEND_URL}/api/subscriptions`, payload);
+        await axios.post(`${BACKEND_URL}/api/subscriptions/${safeUser.id}`, payload);
       }
       setModalVisible(false);
       setEditingSubscription(null);
@@ -68,13 +67,40 @@ export default function SubscriptionsScreen() {
             <View key={sub.id} style={{ padding: 16, borderRadius: 8, backgroundColor: '#f1f5f9', marginBottom: 14 }}>
               <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#222' }}>{sub.name}</Text>
               <Text style={{ color: '#666', marginTop: 4 }}>Next Renewal: {new Date(sub.nextRenewalDate).toLocaleDateString()}</Text>
-              <Text style={{ color: sub.status === 'overdue' ? 'red' : sub.status === 'active' ? 'green' : '#eab308', marginTop: 2 }}>
-                Status: {typeof sub.status === 'string' && sub.status.length > 0
-  ? sub.status.charAt(0).toUpperCase() + sub.status.slice(1)
-  : 'Unknown'}
+              {(() => {
+                const now = new Date();
+                const renewal = new Date(sub.nextRenewalDate);
+                let status: 'Active' | 'Overdue' | 'Inactive';
+                let color: string;
+                if (sub.isActive === false) {
+                  status = 'Inactive';
+                  color = '#eab308';
+                } else if (renewal < now) {
+                  status = 'Overdue';
+                  color = 'red';
+                } else {
+                  status = 'Active';
+                  color = 'green';
+                }
+                return (
+                  <Text style={{ color, marginTop: 2 }}>
+                    Status: {status}
+                  </Text>
+                );
+              })()}
+
+              {/* Debug: Show raw subscription object */}
+              <Text style={{ color: '#888', marginTop: 2, fontSize: 12 }}>
+                [Debug] sub: {JSON.stringify(sub)}
+              </Text>
+              {/* Debug: Show raw amount and type */}
+              <Text style={{ color: '#888', marginTop: 2, fontSize: 12 }}>
+                [Debug] Amount: {String(sub.amount)} (type: {typeof sub.amount})
               </Text>
               {typeof sub.amount === 'number' && !isNaN(sub.amount) ? (
                 <Text style={{ color: '#222', marginTop: 2 }}>Amount: ${sub.amount.toFixed(2)}</Text>
+              ) : typeof sub.amount === 'string' && sub.amount !== undefined && sub.amount !== null && (sub.amount as string).trim() !== '' && !isNaN(Number(sub.amount)) ? (
+                <Text style={{ color: '#222', marginTop: 2 }}>Amount: ${parseFloat(sub.amount).toFixed(2)}</Text>
               ) : (
                 <Text style={{ color: '#222', marginTop: 2 }}>Amount: N/A</Text>
               )}
@@ -123,8 +149,8 @@ export default function SubscriptionsScreen() {
           name: editingSubscription.name,
           nextRenewalDate: editingSubscription.nextRenewalDate?.slice(0,10) || '',
           amount: editingSubscription.amount?.toString() || '',
+          billingCycle: editingSubscription.billingCycle || '',
           category: editingSubscription.category || '',
-          status: editingSubscription.status || 'active',
         } : undefined}
         isEditing={!!editingSubscription}
       />

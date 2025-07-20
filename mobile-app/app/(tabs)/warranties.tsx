@@ -22,9 +22,17 @@ export default function WarrantiesScreen() {
   async function handleAddEditWarranty(values: WarrantyFormValues) {
     try {
       if (editingWarranty) {
-        await axios.put(`${BACKEND_URL}/api/warranties/${editingWarranty.id}`, { ...values, userId: safeUser.id });
+        // Compute expirationDate
+        const purchaseDate = new Date(values.purchaseDate);
+        const expirationDate = new Date(purchaseDate);
+        expirationDate.setMonth(expirationDate.getMonth() + Number(values.warrantyDuration));
+        await axios.put(`${BACKEND_URL}/api/warranties/${editingWarranty.id}`, { ...values, expirationDate: expirationDate.toISOString(), userId: safeUser.id });
       } else {
-        await axios.post(`${BACKEND_URL}/api/warranties`, { ...values, userId: safeUser.id });
+        // Compute expirationDate
+        const purchaseDate = new Date(values.purchaseDate);
+        const expirationDate = new Date(purchaseDate);
+        expirationDate.setMonth(expirationDate.getMonth() + Number(values.warrantyDuration));
+        await axios.post(`${BACKEND_URL}/api/warranties/${safeUser.id}`, { ...values, expirationDate: expirationDate.toISOString(), userId: safeUser.id });
       }
       setModalVisible(false);
       setEditingWarranty(null);
@@ -63,11 +71,20 @@ export default function WarrantiesScreen() {
             <View key={warranty.id} style={{ padding: 16, borderRadius: 8, backgroundColor: '#f1f5f9', marginBottom: 14 }}>
               <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#222' }}>{warranty.productName}</Text>
               <Text style={{ color: '#666', marginTop: 4 }}>Expires: {new Date(warranty.expirationDate).toLocaleDateString()}</Text>
-              <Text style={{ color: warranty.status === 'expired' ? 'red' : warranty.status === 'active' ? 'green' : '#eab308', marginTop: 2 }}>
-                Status: {typeof warranty.status === 'string' && warranty.status.length > 0
-  ? warranty.status.charAt(0).toUpperCase() + warranty.status.slice(1)
-  : 'Unknown'}
-              </Text>
+              {(() => {
+                // Compute status like web app
+                let computedStatus = 'unknown';
+                if (warranty.expirationDate) {
+                  const today = new Date();
+                  const exp = new Date(warranty.expirationDate);
+                  computedStatus = exp < today ? 'expired' : 'active';
+                }
+                return (
+                  <Text style={{ color: computedStatus === 'expired' ? 'red' : computedStatus === 'active' ? 'green' : '#eab308', marginTop: 2 }}>
+                    Status: {computedStatus.charAt(0).toUpperCase() + computedStatus.slice(1)}
+                  </Text>
+                );
+              })()}
               {warranty.isTransferred && (
                 <Text style={{ color: '#2563eb', marginTop: 2 }}>Transferred</Text>
               )}
@@ -110,9 +127,11 @@ export default function WarrantiesScreen() {
         onClose={() => { setModalVisible(false); setEditingWarranty(null); }}
         onSubmit={handleAddEditWarranty}
         initialValues={editingWarranty ? {
-          productName: editingWarranty.productName,
-          expirationDate: editingWarranty.expirationDate?.slice(0,10) || '',
-          status: editingWarranty.status || 'active',
+          productName: editingWarranty.productName || '',
+          vendor: editingWarranty.vendor || '',
+          purchaseDate: editingWarranty.purchaseDate?.slice(0,10) || '',
+          warrantyDuration: editingWarranty.warrantyDuration || 12,
+          description: editingWarranty.description || '',
         } : undefined}
         isEditing={!!editingWarranty}
       />

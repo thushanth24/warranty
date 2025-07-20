@@ -145,6 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/subscriptions/:userId", async (req, res) => {
     try {
+      console.log('[POST /api/subscriptions/:userId] Incoming payload:', req.body);
       const userId = parseInt(req.params.userId);
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
@@ -170,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid subscription data", errors: error.errors });
       }
-      console.error("Error creating subscription:", error);
+      console.error('[POST /api/subscriptions/:userId] Error:', error);
       res.status(500).json({ message: "Failed to create subscription" });
     }
   });
