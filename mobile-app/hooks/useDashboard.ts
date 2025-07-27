@@ -3,9 +3,9 @@ import axios from 'axios';
 import { BACKEND_URL } from '../config/config';
 
 export interface DashboardStats {
-  warranties: number;
-  subscriptions: number;
-  reminders: number;
+  activeSubscriptions: number;
+  monthlySpend: number;
+  activeWarranties: number;
   dueSoon: number;
 }
 

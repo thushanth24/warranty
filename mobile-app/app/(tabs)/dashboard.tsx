@@ -1,10 +1,69 @@
-import React from 'react';
-import { View, Text, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, ActivityIndicator, ScrollView, TouchableOpacity, Animated, TouchableWithoutFeedback } from 'react-native';
 import { MaterialIcons, FontAwesome5, Entypo } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useDashboardStats, useUpcoming } from '../../hooks/useDashboard';
 import styles from '../dashboard.styles';
 import { ScrollView as HScrollView } from 'react-native-gesture-handler';
+import AddActionSheet from '../components/AddActionSheet';
+import WarrantyFormModal from '../components/WarrantyFormModal';
+import SubscriptionFormModal from '../components/SubscriptionFormModal';
+import ReminderFormModal from '../components/ReminderFormModal';
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function getGreetingEmoji() {
+  const hour = new Date().getHours();
+  if (hour < 12) return '☀️';
+  if (hour < 18) return '🌤️';
+  return '🌙';
+}
+
+type StatCardProps = {
+  children: React.ReactNode,
+  color: string,
+  shadowColor: string,
+  style?: any
+};
+
+function StatCard({ children, color, shadowColor, style }: StatCardProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const handlePressIn = () => {
+    Animated.spring(scale, { toValue: 1.04, useNativeDriver: true, speed: 30, bounciness: 6 }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 6 }).start();
+  };
+  return (
+    <TouchableWithoutFeedback onPressIn={handlePressIn} onPressOut={handlePressOut}>
+      <Animated.View style={[
+        {
+          width: 160,
+          height: 110,
+          backgroundColor: color,
+          borderRadius: 20,
+          paddingVertical: 18,
+          paddingHorizontal: 12,
+          shadowColor: shadowColor,
+          shadowOpacity: 0.10,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 4,
+          transform: [{ scale }],
+          justifyContent: 'center',
+        },
+        style,
+      ]}>
+        {children}
+      </Animated.View>
+    </TouchableWithoutFeedback>
+  );
+}
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -28,10 +87,27 @@ export default function DashboardScreen() {
     return '#2563eb'; // blue
   };
 
-  // Floating Add Button (for demonstration, triggers alert)
+  // AddActionSheet state
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+
+  // Handle AddActionSheet selection
+  const handleAddSelect = (key: string) => {
+    setShowAddSheet(false);
+    if (key === 'warranty') {
+      setShowWarrantyModal(true);
+    } else if (key === 'subscription') {
+      setShowSubscriptionModal(true);
+    } else if (key === 'reminder') {
+      setShowReminderModal(true);
+    }
+  };
+
+  // Floating Add Button
   const onAddPress = () => {
-    // You can open a modal or navigate to add screen
-    alert('Add Subscription or Warranty');
+    setShowAddSheet(true);
   };
 
   return (
@@ -39,44 +115,57 @@ export default function DashboardScreen() {
       {/* Header */}
       <View style={{ paddingTop: 32, paddingBottom: 8, paddingHorizontal: 18, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', elevation: 2, shadowColor: '#000', shadowOpacity: 0.04 }}>
         <View>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#222' }}>Dashboard</Text>
-          {user && (
-            <Text style={{ color: '#6366f1', fontSize: 15, marginTop: 2 }}>Hi, {user.firstName || user.phoneNumber || 'User'}!</Text>
-          )}
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#222', fontFamily: 'System' }}>{getGreeting()}, {user?.firstName || user?.phoneNumber || 'User'}! <Text style={{ fontSize: 20 }}>{getGreetingEmoji()}</Text></Text>
         </View>
         <MaterialIcons name="account-circle" size={36} color="#a5b4fc" />
       </View>
-      {/* Stats Cards: horizontal scroll */}
-      <HScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 14, marginBottom: 12 }} contentContainerStyle={{ paddingHorizontal: 12 }}>
+      {/* Stats Cards: 2x2 grid, mobile optimized */}
+      <View style={{ marginTop: 14, marginBottom: 12, paddingHorizontal: 16 }}>
         {statsLoading ? (
-          <ActivityIndicator size="small" color="#2563eb" style={{ marginHorizontal: 20 }} />
+          <ActivityIndicator size="small" color="#2563eb" style={{ marginVertical: 20 }} />
         ) : statsError ? (
-          <Text style={{ color: 'red', marginHorizontal: 20 }}>Failed to load stats</Text>
+          <Text style={{ color: 'red', marginVertical: 20 }}>Failed to load stats</Text>
         ) : stats ? (
           <>
-            <View style={[styles.statCard, { minWidth: 130, marginRight: 10 }]}> 
-              <MaterialIcons name="shield" size={32} color="#6366f1" style={styles.statIcon} />
-              <Text style={styles.statLabel}>Warranties</Text>
-              <Text style={styles.statValue}>{stats.warranties}</Text>
-            </View>
-            <View style={[styles.statCard, { minWidth: 130, marginRight: 10 }]}> 
-              <MaterialIcons name="subscriptions" size={32} color="#2563eb" style={styles.statIcon} />
-              <Text style={styles.statLabel}>Subscriptions</Text>
-              <Text style={styles.statValue}>{stats.subscriptions}</Text>
-            </View>
-            <View style={[styles.statCard, { minWidth: 130, marginRight: 10 }]}> 
-              <MaterialIcons name="notifications-active" size={32} color="#10b981" style={styles.statIcon} />
-              <Text style={styles.statLabel}>Reminders</Text>
-              <Text style={styles.statValue}>{stats.reminders}</Text>
-            </View>
-            <View style={[styles.statCard, { minWidth: 130 }]}> 
-              <MaterialIcons name="schedule" size={32} color="#eab308" style={styles.statIcon} />
-              <Text style={styles.statLabel}>Due Soon</Text>
-              <Text style={[styles.statValue, styles.statValueWarning]}>{stats.dueSoon}</Text>
-            </View>
+            <StatCard color="#e0e7ff" shadowColor="#2563eb" style={{ marginBottom: 18, width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="subscriptions" size={38} color="#2563eb" style={{ marginRight: 18 }} />
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={[styles.statLabel, { fontSize: 15, color: '#1e293b', fontWeight: '600' }]}>Active Subscriptions</Text>
+                  <Text style={[styles.statValue, { fontSize: 22, fontWeight: 'bold', color: '#2563eb' }]}>{stats.activeSubscriptions}</Text>
+                </View>
+              </View>
+            </StatCard>
+            <StatCard color="#d1fae5" shadowColor="#10b981" style={{ marginBottom: 18, width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="attach-money" size={38} color="#10b981" style={{ marginRight: 18 }} />
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={[styles.statLabel, { fontSize: 15, color: '#065f46', fontWeight: '600' }]}>Monthly Spend</Text>
+                  <Text style={[styles.statValue, { fontSize: 22, fontWeight: 'bold', color: '#065f46' }]}>{stats.monthlySpend ? `₹${stats.monthlySpend}` : '₹0'}</Text>
+                </View>
+              </View>
+            </StatCard>
+            <StatCard color="#f3e8ff" shadowColor="#a78bfa" style={{ marginBottom: 18, width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="shield" size={38} color="#7c3aed" style={{ marginRight: 18 }} />
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={[styles.statLabel, { fontSize: 15, color: '#6d28d9', fontWeight: '600' }]}>Active Warranties</Text>
+                  <Text style={[styles.statValue, { fontSize: 22, fontWeight: 'bold', color: '#6d28d9' }]}>{stats.activeWarranties}</Text>
+                </View>
+              </View>
+            </StatCard>
+            <StatCard color="#fef9c3" shadowColor="#eab308" style={{ width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="schedule" size={38} color="#eab308" style={{ marginRight: 18 }} />
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={[styles.statLabel, { fontSize: 15, color: '#b45309', fontWeight: '600' }]}>Due This Week</Text>
+                  <Text style={[styles.statValue, { fontSize: 22, fontWeight: 'bold', color: '#b45309' }]}>{stats.dueSoon}</Text>
+                </View>
+              </View>
+            </StatCard>
           </>
         ) : null}
-      </HScrollView>
+      </View>
       {/* Upcoming Section: vertical list */}
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>Upcoming</Text>
@@ -108,6 +197,32 @@ export default function DashboardScreen() {
       <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
+      <AddActionSheet
+        visible={showAddSheet}
+        onClose={() => setShowAddSheet(false)}
+        onSelect={handleAddSelect}
+      />
+      <WarrantyFormModal
+        visible={showWarrantyModal}
+        onClose={() => setShowWarrantyModal(false)}
+        onSubmit={() => setShowWarrantyModal(false)}
+        initialValues={undefined}
+        isEditing={false}
+      />
+      <SubscriptionFormModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        onSubmit={() => setShowSubscriptionModal(false)}
+        initialValues={undefined}
+        isEditing={false}
+      />
+      <ReminderFormModal
+        visible={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        onSubmit={() => setShowReminderModal(false)}
+        initialValues={undefined}
+        isEditing={false}
+      />
     </View>
   );
 }
