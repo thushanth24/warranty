@@ -1,5 +1,4 @@
 // Centralized app config for environment variables and URLs
-// Use process.env.EXPO_PUBLIC_BACKEND_URL for Expo EAS and fallback for local dev
+// For development, using hardcoded URL
 
-export const BACKEND_URL =
-  process.env.EXPO_PUBLIC_BACKEND_URL || "https://your.backend.api";
+export const BACKEND_URL = "http://192.168.1.121:5000";

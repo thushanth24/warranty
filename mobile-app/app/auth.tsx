@@ -39,12 +39,29 @@ export default function AuthScreen() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/send-otp`, {
+      const fullPhone = getFullPhone();
+      console.log('Attempting to send OTP to:', fullPhone);
+      console.log('Using backend URL:', BACKEND_URL);
+      
+      const response = await fetch(`${BACKEND_URL}/api/auth/send-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: getFullPhone() }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ phoneNumber: fullPhone }),
       });
-      if (!res.ok) throw new Error('Failed to send OTP');
+      
+      console.log('Response status:', response.status);
+      const responseData = await response.json().catch(() => ({}));
+      console.log('Response data:', responseData);
+      
+      if (!response.ok) {
+        const errorMessage = responseData.message || 'Failed to send OTP';
+        console.error('OTP Error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
       setStep('otp');
       setCountdown(30);
       timerRef.current = setInterval(() => {
@@ -56,8 +73,9 @@ export default function AuthScreen() {
           return prev - 1;
         });
       }, 1000);
-    } catch (e) {
-      setError('Could not send OTP. Please try again.');
+    } catch (e: any) {
+      console.error('Error in handleSendOtp:', e);
+      setError(e.message || 'Could not send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
